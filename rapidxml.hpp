@@ -293,6 +293,7 @@ namespace rapidxml
         {
             static const unsigned char lookup_whitespace[256];              // Whitespace table
             static const unsigned char lookup_node_name[256];               // Node name table
+            static const unsigned char lookup_element_name[256];               // Element name table
             static const unsigned char lookup_text[256];                    // Text table
             static const unsigned char lookup_text_pure_no_ws[256];         // Text table
             static const unsigned char lookup_text_pure_with_ws[256];       // Text table
@@ -701,7 +702,6 @@ namespace rapidxml
         {
             return m_value ? m_value_size : 0;
         }
-
         ///////////////////////////////////////////////////////////////////////////
         // Node modification
     
@@ -761,7 +761,6 @@ namespace rapidxml
         {
             this->value(value, internal::measure(value));
         }
-
         ///////////////////////////////////////////////////////////////////////////
         // Related nodes access
     
@@ -902,6 +901,8 @@ namespace rapidxml
             : m_type(type)
             , m_first_node(0)
             , m_first_attribute(0)
+            , m_xmlns(0)
+            , m_prefix(0)
         {
         }
 
@@ -913,6 +914,69 @@ namespace rapidxml
         node_type type() const
         {
             return m_type;
+        }
+
+        void prefix(const Ch *prefix, std::size_t size)
+        {
+            m_prefix = const_cast<Ch *>(prefix);
+            m_prefix_size = size;
+        }
+        void prefix(const Ch *prefix)
+        {
+            this->prefix(prefix, internal::measure(prefix));
+        }
+
+        Ch *prefix() const
+        {
+            return m_prefix ? m_prefix : xml_base<Ch>::nullstr();
+        }
+
+        std::size_t prefix_size() const
+        {
+            return m_prefix ? m_prefix_size : 0;
+        }
+
+        Ch *xmlns() const
+        {
+            if (m_xmlns) return m_xmlns;
+            Ch * freeme = 0;
+            Ch * attrname;
+            if (m_prefix) {
+                freeme = attrname = new Ch[m_prefix_size + 7];
+                const char * p1="xmlns";
+                while (*p1) *attrname++ = *p1++;
+                Ch * p = m_prefix;
+                *attrname++ = Ch(':');
+                while (*p) *attrname++ = *p++;
+                *attrname = Ch(0);
+                attrname = freeme;
+            } else {
+                freeme = attrname = new Ch[6];
+                const char * p1="xmlns";
+                while (*p1) *attrname++ = *p1++;
+                *attrname = Ch(0);
+                attrname = freeme;
+            }
+            for (const xml_node<Ch> * node = this;
+                 node;
+                 node = node->parent()) {
+                const xml_attribute<Ch> * attr = node->first_attribute(attrname);
+                if (attr) {
+                    m_xmlns = attr->value();
+                    if (m_xmlns) {
+                        m_xmlns_size = attr->value_size();
+                    }
+                    break;
+                }
+            }
+            return m_xmlns;
+        }
+
+	std::size_t xmlns_size() const
+        {
+            if (m_xmlns) return m_xmlns_size;
+            this->xmlns();
+            return m_xmlns_size;
         }
 
         ///////////////////////////////////////////////////////////////////////////
@@ -933,19 +997,21 @@ namespace rapidxml
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
         //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters
         //! \return Pointer to found child, or 0 if not found.
-        xml_node<Ch> *first_node(const Ch *name = 0, std::size_t name_size = 0, bool case_sensitive = true) const
+        xml_node<Ch> *first_node(const Ch *name = 0, const Ch *xmlns = 0, std::size_t name_size = 0, std::size_t xmlns_size = 0, bool case_sensitive = true) const
         {
-            if (name)
-            {
-                if (name_size == 0)
-                    name_size = internal::measure(name);
-                for (xml_node<Ch> *child = m_first_node; child; child = child->next_sibling())
-                    if (internal::compare(child->name(), child->name_size(), name, name_size, case_sensitive))
-                        return child;
-                return 0;
+            if (name && !name_size) name_size = internal::measure(name);
+            if (xmlns && !xmlns_size) xmlns_size = internal::measure(xmlns);
+            if (!xmlns && name) {
+                // No XMLNS asked for, but a name is present.
+                // Assume "same XMLNS".
+                xmlns = this->xmlns();
+                xmlns_size = this->xmlns_size();
             }
-            else
-                return m_first_node;
+            for (xml_node<Ch> *child = m_first_node; child; child = child->next_sibling())
+                if ((!name || internal::compare(child->name(), child->name_size(), name, name_size, case_sensitive))
+                    && (!xmlns || internal::compare(child->xmlns(), child->xmlns_size(), xmlns, xmlns_size, case_sensitive)))
+                    return child;
+            return 0;
         }
 
         //! Gets last child node, optionally matching node name. 
@@ -955,20 +1021,22 @@ namespace rapidxml
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
         //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters
         //! \return Pointer to found child, or 0 if not found.
-        xml_node<Ch> *last_node(const Ch *name = 0, std::size_t name_size = 0, bool case_sensitive = true) const
+        xml_node<Ch> *last_node(const Ch *name = 0, const Ch *xmlns = 0, std::size_t name_size = 0, std::size_t xmlns_size = 0, bool case_sensitive = true) const
         {
             assert(m_first_node);  // Cannot query for last child if node has no children
-            if (name)
-            {
-                if (name_size == 0)
-                    name_size = internal::measure(name);
-                for (xml_node<Ch> *child = m_last_node; child; child = child->previous_sibling())
-                    if (internal::compare(child->name(), child->name_size(), name, name_size, case_sensitive))
-                        return child;
-                return 0;
+            if (name && !name_size) name_size = internal::measure(name);
+            if (xmlns && !xmlns_size) xmlns_size = internal::measure(xmlns);
+            if (!xmlns && name) {
+                // No XMLNS asked for, but a name is present.
+                // Assume "same XMLNS".
+                xmlns = this->xmlns();
+                xmlns_size = this->xmlns_size();
             }
-            else
-                return m_last_node;
+            for (xml_node<Ch> *child = m_last_node; child; child = child->previous_sibling())
+                if ((!name || internal::compare(child->name(), child->name_size(), name, name_size, case_sensitive))
+                    && (!xmlns || internal::compare(child->xmlns(), child->xmlns_size(), xmlns, xmlns_size, case_sensitive)))
+                    return child;
+            return 0;
         }
 
         //! Gets previous sibling node, optionally matching node name. 
@@ -1334,6 +1402,10 @@ namespace rapidxml
         // 2. last_node and last_attribute are valid only if node has at least one child/attribute respectively, otherwise they contain garbage
         // 3. prev_sibling and next_sibling are valid only if node has a parent, otherwise they contain garbage
 
+        Ch *m_prefix;
+        mutable Ch *m_xmlns; // Cache
+        std::size_t m_prefix_size;
+        mutable std::size_t m_xmlns_size;
         node_type m_type;                       // Type of node; always valid
         xml_node<Ch> *m_first_node;             // Pointer to first child node, or 0 if none; always valid
         xml_node<Ch> *m_last_node;              // Pointer to last child node, or 0 if none; this value is only valid if m_first_node is non-zero
@@ -1439,6 +1511,15 @@ namespace rapidxml
             static unsigned char test(Ch ch)
             {
                 return internal::lookup_tables<0>::lookup_node_name[static_cast<unsigned char>(ch)];
+            }
+        };
+
+        // Detect element name character
+        struct element_name_pred
+        {
+            static unsigned char test(Ch ch)
+            {
+                return internal::lookup_tables<0>::lookup_element_name[static_cast<unsigned char>(ch)];
             }
         };
 
@@ -2040,11 +2121,21 @@ namespace rapidxml
             xml_node<Ch> *element = this->allocate_node(node_element);
 
             // Extract element name
-            Ch *name = text;
-            skip<node_name_pred, Flags>(text);
-            if (text == name)
+            Ch *prefix = text;
+            skip<element_name_pred, Flags>(text);
+            if (text == prefix)
                 RAPIDXML_PARSE_ERROR("expected element name", text);
-            element->name(name, text - name);
+            if (*text == Ch(':')) {
+                element->prefix(prefix, text - prefix);
+                ++text;
+                Ch *name = text;
+                skip<node_name_pred, Flags>(text);
+                if (text == name)
+                    RAPIDXML_PARSE_ERROR("expected element name", text);
+                element->name(name, text - name);
+            } else {
+                element->name(prefix, text - prefix);
+            }
             
             // Skip whitespace between element name and attributes or >
             skip<whitespace_pred, Flags>(text);
@@ -2069,8 +2160,10 @@ namespace rapidxml
                 RAPIDXML_PARSE_ERROR("expected >", text);
 
             // Place zero terminator after name
-            if (!(Flags & parse_no_string_terminators))
+            if (!(Flags & parse_no_string_terminators)) {
                 element->name()[element->name_size()] = Ch('\0');
+                element->prefix()[element->prefix_size()] = Ch('\0');
+            }
 
             // Return parsed element
             return element;
@@ -2324,6 +2417,29 @@ namespace rapidxml
              0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // D
              0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  // E
              0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0   // F
+        };
+
+        // Element name (anything but space \n \r \t / > ? \0 and :)
+        template<int Dummy>
+        const unsigned char lookup_tables<Dummy>::lookup_element_name[256] = 
+        {
+          // 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+             0,  1,  1,  1,  1,  1,  1,  1,  1,  0,  0,  1,  1,  0,  1,  1,  // 0
+             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  // 1
+             0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  // 2
+             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  0,  1,  1,  1,  0,  0,  // 3
+             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  // 4
+             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  // 5
+             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  // 6
+             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  // 7
+             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  // 8
+             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  // 9
+             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  // A
+             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  // B
+             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  // C
+             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  // D
+             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  // E
+             1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1   // F
         };
 
         // Node name (anything but space \n \r \t / > ? \0)
