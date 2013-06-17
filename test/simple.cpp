@@ -42,6 +42,15 @@ int main(int argc, char * argv[]) {
         std::cout << "Parse error: " << e.what() << std::endl << "At: " << e.where<char>() << std::endl;
     }
 
+    try {
+        char doc_text[] = "<pfx:single xmlns:pfx='urn:xmpp:example'>";
+        doc.parse<0>(doc_text);
 
+        auto node = doc.first_node();
+        std::cout << "<" << node->prefix() << ":" << node->name() << "/> " << node->xmlns() << std::endl;
+        assert(std::string("single") == node->name());
+    } catch(parse_error & e) {
+        std::cout << "Parse error: " << e.what() << std::endl << "At: " << e.where<char>() << std::endl;
+    }
     return 0;
 }
