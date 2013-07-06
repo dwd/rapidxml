@@ -246,6 +246,20 @@ namespace rapidxml
     //! See xml_document::parse() function.
     const int parse_normalize_whitespace = 0x800;
 
+    //! Parse flag to say "The first element probably doesn't close."
+    //! Useful for XMLstreams used in XMPP.
+    const int parse_unclosed = 0x1000;
+
+    //! Parse flag to say "Toss the children of the top node and parse off
+    //! one element.
+    //! Useful for parsing off XMPP top-level elements.
+    const int parse_parse_more = 0x2000;
+
+    //! Parse flag to say "Validate XML namespaces fully."
+    //! This will generate additional errors, including unbound prefixes
+    //! and duplicate attributes (with different prefices)
+    const int parse_validate_xmlns = 0x4000;
+
     // Compound flags
     
     //! Parse flags which represent default behaviour of the parser. 
@@ -947,7 +961,10 @@ namespace rapidxml
                 while (*p1) *attrname++ = *p1++;
                 Ch * p = m_prefix;
                 *attrname++ = Ch(':');
-                while (*p) *attrname++ = *p++;
+                while (*p) {
+                    *attrname++ = *p++;
+                    if ((attrname - freeme) >= (m_prefix_size + 6)) break;
+                }
                 *attrname = Ch(0);
                 attrname = freeme;
             } else {
@@ -1491,6 +1508,46 @@ namespace rapidxml
             memory_pool<Ch>::clear();
         }
         
+        //! Terminates and/or decodes existing parsed tree,
+        //! optionally recursively.
+        template<int Flags>
+        void fixup(xml_node<Ch> * element, bool recurse)
+        {
+            // Check the type.
+            if (element->type() == node_element) {
+                // Terminate name and attributes
+                if (!(Flags & parse_no_string_terminators))
+                    element->name()[element->name_size()] = 0;
+                for (xml_attribute<Ch> *attr = element->first_attribute();
+                     attr;
+                     attr = attr->next_attribute()) {
+                    if (!(Flags & parse_no_string_terminators))
+                        attr->name()[attr->name_size()] = 0;
+                    Ch * value = attr->value();
+                    Ch * p = value;
+                    Ch * end;
+                    const int AttFlags = Flags & ~parse_normalize_whitespace;   // No whitespace normalization in attributes
+                    Ch quote = value[-1];
+                    if (quote == Ch('\''))
+                        end = skip_and_expand_character_refs<attribute_value_pred<Ch('\'')>, attribute_value_pure_pred<Ch('\'')>, AttFlags>(p);
+                    else
+                        end = skip_and_expand_character_refs<attribute_value_pred<Ch('"')>, attribute_value_pure_pred<Ch('"')>, AttFlags>(p);
+                    attr->value(value, end - value);
+                    if (!(Flags & parse_no_string_terminators))
+                        attr->value()[attr->value_size()] = 0;
+                }
+                if (recurse) {
+                    for (xml_node<Ch> *child = element->first_node();
+                         child;
+                         child = child->next_sibling()) {
+                        this->fixup<Flags>(child, true);
+                    }
+                    if (!(Flags & parse_no_string_terminators))
+                        element->value()[element->value_size()] = 0;
+                }
+            }
+        }
+
     private:
 
         ///////////////////////////////////////////////////////////////////////
@@ -2124,14 +2181,14 @@ namespace rapidxml
             Ch *prefix = text;
             skip<element_name_pred, Flags>(text);
             if (text == prefix)
-                RAPIDXML_PARSE_ERROR("expected element name", text);
+                RAPIDXML_PARSE_ERROR("expected element name or prefix", text);
             if (*text == Ch(':')) {
                 element->prefix(prefix, text - prefix);
                 ++text;
                 Ch *name = text;
                 skip<node_name_pred, Flags>(text);
                 if (text == name)
-                    RAPIDXML_PARSE_ERROR("expected element name", text);
+                    RAPIDXML_PARSE_ERROR("expected element local name", text);
                 element->name(name, text - name);
             } else {
                 element->name(prefix, text - prefix);
@@ -2301,20 +2358,26 @@ namespace rapidxml
                         if (*text != Ch('>'))
                             RAPIDXML_PARSE_ERROR("expected >", text);
                         ++text;     // Skip '>'
+                        if (Flags & parse_unclosed)
+                            RAPIDXML_PARSE_ERROR("Unclosed element actually closed.", text);
                         return;     // Node closed, finished parsing contents
                     }
                     else
                     {
                         // Child node
                         ++text;     // Skip '<'
-                        if (xml_node<Ch> *child = parse_node<Flags>(text))
+                        if (xml_node<Ch> *child = parse_node<Flags & ~parse_unclosed>(text))
                             node->append_node(child);
                     }
                     break;
 
-                // End of data - error
+                // End of data - error unless we expected this.
                 case Ch('\0'):
-                    RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                    if (Flags & parse_unclosed) {
+                        return;
+                    } else {
+                        RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                    }
 
                 // Data node
                 default:
