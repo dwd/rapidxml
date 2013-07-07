@@ -16,6 +16,15 @@ int main(int argc, char * argv[]) {
         std::cout << "Parse error: " << e.what() << std::endl << "At: " << e.where<char>() << std::endl;
     }
     try {
+        char doc_text[] = "<single-element attr='one' attr=\"two\"/>";
+        doc.parse<0>(doc_text);
+
+        auto node = doc.first_node();
+        assert(std::string("single-element") == node->name());
+    } catch(parse_error & e) {
+        std::cout << "Parse error: " << e.what() << std::endl << "At: " << e.where<char>() << std::endl;
+    }
+    try {
         char doc_text[] = "<pfx:single xmlns:pfx='urn:xmpp:example'/>";
         doc.parse<0>(doc_text);
 
@@ -102,11 +111,33 @@ int main(int argc, char * argv[]) {
     }
     try {
         char doc_text[] = "<pfx:single xmlns:pfx='urn:xmpp:example'>";
-        doc.parse<parse_unclosed>(doc_text);
+        doc.parse<parse_open_only>(doc_text);
 
         auto node = doc.first_node();
         std::cout << "<" << node->prefix() << ":" << node->name() << "/> " << node->xmlns() << std::endl;
         assert(std::string("single") == node->name());
+    } catch(parse_error & e) {
+        std::cout << "Parse error: " << e.what() << std::endl << "At: " << e.where<char>() << std::endl;
+    }
+    try {
+        char doc_text[] = "<pfx:single xmlns:pfx='urn:xmpp:example'><pfx:features><feature1/><feature2/></pfx:features>";
+        char * text = doc.parse<parse_open_only>(doc_text);
+
+        auto node = doc.first_node();
+        std::cout << "<" << node->prefix() << ":" << node->name() << "/> " << node->xmlns() << std::endl;
+        assert(std::string("single") == node->name());
+	std::cout << text << std::endl;
+    } catch(parse_error & e) {
+        std::cout << "Parse error: " << e.what() << std::endl << "At: " << e.where<char>() << std::endl;
+    }
+    try {
+        char doc_text[] = "<pfx:single xmlns:pfx='urn:xmpp:example'><pfx:features><feature1/><feature2/></p";
+        char * text = doc.parse<parse_open_only>(doc_text);
+
+        auto node = doc.first_node();
+        std::cout << "<" << node->prefix() << ":" << node->name() << "/> " << node->xmlns() << std::endl;
+        assert(std::string("single") == node->name());
+	std::cout << text << std::endl;
     } catch(parse_error & e) {
         std::cout << "Parse error: " << e.what() << std::endl << "At: " << e.where<char>() << std::endl;
     }
