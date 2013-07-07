@@ -183,7 +183,7 @@ int main(int argc, char * argv[]) {
         std::cout << "Validation error: " << e.what() << std::endl;
     }
     try {
-        char doc_text[] = "<pfx:single xmlns:pfx='urn:xmpp:example'><pfx:features><feature1/><feature2/></pfx:features>";
+        char doc_text[] = "<pfx:single xmlns='jabber:client' xmlns:pfx='urn:xmpp:example'><pfx:features><feature1/><feature2/></pfx:features><message to='me@mydomain.com' from='you@yourdomcina.com' xml:lang='en'><body>Hello!</body></message>";
         char * text = doc.parse<parse_open_only>(doc_text);
 
         auto node = doc.first_node();
@@ -191,6 +191,14 @@ int main(int argc, char * argv[]) {
         assert(std::string("single") == node->name());
 	std::cout << text << std::endl;
         doc.validate();
+        while (*text) {
+            xml_document<> subdoc;
+            text = subdoc.parse<parse_parse_one>(text, doc);
+            auto node = subdoc.first_node();
+            auto xmlns = node->xmlns();
+            std::cout << "<" << node->name() << " xmlns='" << node->xmlns() << "'/>" << std::endl;
+            subdoc.validate();
+        }
     } catch(parse_error & e) {
         std::cout << "Parse error: " << e.what() << std::endl << "At: " << e.where<char>() << std::endl;
     } catch(validation_error & e) {
@@ -205,6 +213,13 @@ int main(int argc, char * argv[]) {
         assert(std::string("single") == node->name());
 	std::cout << text << std::endl;
         doc.validate();
+        while (*text) {
+            xml_document<> subdoc;
+            text = subdoc.parse<parse_parse_one>(text, doc);
+            subdoc.validate();
+            auto node = doc.first_node();
+            std::cout << "<" << node->name() << " xmlns='" << node->xmlns() << "'/>" << std::endl;
+        }
     } catch(parse_error & e) {
         std::cout << "Parse error: " << e.what() << std::endl << "At: " << e.where<char>() << std::endl;
     } catch(validation_error & e) {

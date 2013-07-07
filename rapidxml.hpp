@@ -437,12 +437,20 @@ namespace rapidxml
                 else
                     node->name(name);
             }
+            else
+            {
+                node->name(this->nullstr(), 0);
+            }
             if (value)
             {
                 if (value_size > 0)
                     node->value(value, value_size);
                 else
                     node->value(value);
+            }
+            else
+            {
+                node->value(this->nullstr(), 0);
             }
             return node;
         }
@@ -864,8 +872,9 @@ namespace rapidxml
             if (m_xmlns) return m_xmlns;
             Ch * p;
             Ch * name = this->name();
-            for (p = name; *p && *p != ':'; ++p);
-            if (!*p) {
+            for (p = name; *p && *p != ':'; ++p)
+                if ((p - name) >= this->name_size()) break;
+            if (!*p || ((p - name) >= this->name_size())) {
                 m_xmlns = document()->nullstr();
                 m_xmlns_size = 0;
                 return m_xmlns;
@@ -1582,7 +1591,7 @@ namespace rapidxml
             // Remove current contents
             this->remove_all_nodes();
             this->remove_all_attributes();
-            this->m_parent = parent;
+            this->m_parent = parent ? parent->first_node() : 0;
             
             // Parse BOM, if any
             parse_bom<Flags>(text);
@@ -1611,6 +1620,11 @@ namespace rapidxml
                     RAPIDXML_PARSE_ERROR("expected <", text);
             }
             return text;
+        }
+        template<int Flags>
+        Ch * parse(Ch * text, xml_document<Ch> & parent)
+        {
+            return parse<Flags>(text, &parent);
         }
 
         //! Clears the document by deleting all nodes and clearing the memory pool.
