@@ -50,7 +50,7 @@ namespace rapidxml
 
 #else
     
-#include <exception>    // For std::exception
+#include <stdexcept>    // For std::runtime_error
 
 #define RAPIDXML_PARSE_ERROR(what, where) throw parse_error(what, where)
 
@@ -68,23 +68,16 @@ namespace rapidxml
     //! This function must be defined by the user.
     //! <br><br>
     //! This class derives from <code>std::exception</code> class.
-    class parse_error: public std::exception
+    class parse_error: public std::runtime_error
     {
     
     public:
     
         //! Constructs parse error
         parse_error(const char *what, void *where)
-            : m_what(what)
+            : std::runtime_error(what)
             , m_where(where)
         {
-        }
-
-        //! Gets human readable description of error.
-        //! \return Pointer to null terminated description of the error.
-        virtual const char *what() const throw()
-        {
-            return m_what;
         }
 
         //! Gets pointer to character data where error happened.
@@ -97,10 +90,14 @@ namespace rapidxml
         }
 
     private:  
-
-        const char *m_what;
         void *m_where;
+    };
 
+    class validation_error : public std::runtime_error
+    {
+    public:
+        validation_error(const char * what)
+            : std::runtime_error(what) {}
     };
 }
 
@@ -253,7 +250,7 @@ namespace rapidxml
     //! Parse flag to say "Toss the children of the top node and parse off
     //! one element.
     //! Useful for parsing off XMPP top-level elements.
-    const int parse_parse_more = 0x2000;
+    const int parse_parse_one = 0x2000;
 
     //! Parse flag to say "Validate XML namespaces fully."
     //! This will generate additional errors, including unbound prefixes
@@ -488,7 +485,8 @@ namespace rapidxml
         //! \param source String to initialize the allocated memory with, or 0 to not initialize it.
         //! \param size Number of characters to allocate, or zero to calculate it automatically from source string length; if size is 0, source string must be specified and null terminated.
         //! \return Pointer to allocated char array. This pointer will never be NULL.
-        Ch *allocate_string(const Ch *source = 0, std::size_t size = 0)
+        template<typename Sch>
+        Ch *allocate_string(const Sch *source = 0, std::size_t size = 0)
         {
             assert(source || size);     // Either source or size (or both) must be specified
             if (size == 0)
@@ -502,12 +500,25 @@ namespace rapidxml
 
         Ch * nullstr()
         {
-            if (m_nullstr) return m_nullstr;
-            m_nullstr = allocate_string(0, 1);
-            m_nullstr[0] = Ch(0);
+            if (!m_nullstr);
+                m_nullstr = allocate_string("");
             return m_nullstr;
         }
-            
+        Ch * xmlns_xml(std::size_t & xmlns_size)
+        {
+            if (!m_xmlns_xml)
+                m_xmlns_xml = allocate_string("http://www.w3.org/XML/1998/namespace");
+            xmlns_size = internal::measure(m_xmlns_xml);
+            return m_xmlns_xml;
+        }
+        Ch * xmlns_xmlns(std::size_t & xmlns_size)
+        {
+            if (!m_xmlns_xmlns)
+                m_xmlns_xmlns = allocate_string("http://www.w3.org/2000/xmlns/");
+            xmlns_size = internal::measure(m_xmlns_xmlns);
+            return m_xmlns_xmlns;
+        }
+
 
         //! Clones an xml_node and its hierarchy of child nodes and attributes.
         //! Nodes and attributes are allocated from this memory pool.
@@ -593,6 +604,8 @@ namespace rapidxml
             m_ptr = align(m_begin);
             m_end = m_static_memory + sizeof(m_static_memory);
             m_nullstr = 0;
+            m_xmlns_xml = 0;
+            m_xmlns_xmlns = 0;
         }
         
         char *align(char *ptr)
@@ -662,6 +675,8 @@ namespace rapidxml
         alloc_func *m_alloc_func;                           // Allocator function, or 0 if default is to be used
         free_func *m_free_func;                             // Free function, or 0 if default is to be used
         Ch * m_nullstr;
+        Ch * m_xmlns_xml;
+        Ch * m_xmlns_xmlns;
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -859,6 +874,10 @@ namespace rapidxml
             if (element) element->xmlns_lookup(m_xmlns, m_xmlns_size, name, p - name);
             return m_xmlns;
         }
+        std::size_t xmlns_size() const
+        {
+            return this->xmlns() ? m_xmlns_size : 0;
+        }
         //! Gets previous attribute, optionally matching attribute name. 
         //! \param name Name of attribute to find, or 0 to return previous attribute regardless of its name; this string doesn't have to be zero-terminated if name_size is non-zero
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
@@ -899,12 +918,30 @@ namespace rapidxml
                 return this->m_parent ? m_next_attribute : 0;
         }
 
+        Ch * local_name() const
+        {
+            if (m_local_name) return m_local_name;
+            Ch * p = this->name();
+            for (; *p && *p != Ch(':'); ++p);
+            if (*p)
+                m_local_name = p + 1;
+            else
+                m_local_name = this->name(); 
+            return m_local_name;
+        }
+
+        std::size_t local_name_size() const
+        {
+            return this->name_size() - (this->local_name() - this->name());
+        }
+
     private:
 
         xml_attribute<Ch> *m_prev_attribute;        // Pointer to previous sibling of attribute, or 0 if none; only valid if parent is non-zero
         xml_attribute<Ch> *m_next_attribute;        // Pointer to next sibling of attribute, or 0 if none; only valid if parent is non-zero
         mutable Ch * m_xmlns;
         mutable std::size_t m_xmlns_size;
+        mutable Ch * m_local_name; // ATTN: points inside m_name.
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -980,6 +1017,21 @@ namespace rapidxml
             Ch * freeme = 0;
             Ch * attrname;
             if (prefix) {
+                // Check if the prefix begins "xml".
+                if (prefix_size >= 3
+                    && prefix[0] == Ch('x')
+                    && prefix[1] == Ch('m')
+                    && prefix[2] == Ch('l')) {
+                    if (prefix_size == 3) {
+                        xmlns = this->document()->xmlns_xml(xmlns_size);
+                        return;
+                    } else if (prefix_size == 5
+                               && prefix[3] == Ch('n')
+                               && prefix[4] == Ch('s')) {
+                        xmlns = this->document()->xmlns_xmlns(xmlns_size);
+                        return;
+                    }
+                }
                 freeme = attrname = new Ch[prefix_size + 7];
                 const char * p1="xmlns";
                 while (*p1) *attrname++ = *p1++;
@@ -1426,6 +1478,33 @@ namespace rapidxml
                 attribute->m_parent = 0;
             m_first_attribute = 0;
         }
+
+        void validate() const
+        {
+            if (this->xmlns() == 0)
+                throw validation_error("Element XMLNS unbound");
+            for (xml_node<Ch> * child = this->first_node();
+                 child;
+                 child = child->next_sibling()) {
+                child->validate();
+            }
+            for (xml_attribute<Ch> *attribute = first_attribute();
+                 attribute;
+                 attribute = attribute->m_next_attribute) {
+                if (attribute->xmlns() == 0)
+                    throw validation_error("Attribute XMLNS unbound");
+                for (xml_attribute<Ch> *otherattr = first_attribute();
+                     otherattr != attribute;
+                     otherattr = otherattr->m_next_attribute) {
+                    if (internal::compare(attribute->name(), attribute->name_size(), otherattr->name(), otherattr->name_size(), true)) {
+                        throw validation_error("Attribute doubled");
+                    }
+                    if (internal::compare(attribute->local_name(), attribute->local_name_size(), otherattr->local_name(), otherattr->local_name_size(), true)
+                        && internal::compare(attribute->xmlns(), attribute->xmlns_size(), otherattr->xmlns(), otherattr->xmlns_size(), true))
+                        throw validation_error("Attribute XMLNS doubled");
+                }
+            }
+        }
         
     private:
 
@@ -1522,7 +1601,7 @@ namespace rapidxml
                     ++text;     // Skip '<'
                     if (xml_node<Ch> *node = parse_node<Flags>(text)) {
                         this->append_node(node);
-                        if (Flags & parse_open_only) {
+                        if (Flags & (parse_open_only|parse_parse_one)) {
                             if (node->type() == node_element)
                                 break;
                         }
@@ -1580,6 +1659,16 @@ namespace rapidxml
                     if (!(Flags & parse_no_string_terminators) && element->value())
                         element->value()[element->value_size()] = 0;
                 }
+            }
+        }
+
+	
+        void validate() const
+        {
+            for (xml_node<Ch> * child = this->first_node();
+                 child;
+                 child = child->next_sibling()) {
+                child->validate();
             }
         }
 
