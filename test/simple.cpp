@@ -206,11 +206,11 @@ int main(int argc, char * argv[]) {
     }
     try {
         char doc_text[] = "<pfx:single xmlns:pfx='urn:xmpp:example'><pfx:features><feature1/><feature2/></p";
-        char * text = doc.parse<parse_open_only>(doc_text);
+        char * text = doc.parse<parse_open_only|parse_fastest>(doc_text);
 
         auto node = doc.first_node();
         std::cout << "<" << node->prefix() << ":" << node->name() << "/> " << node->xmlns() << std::endl;
-        assert(std::string("single") == node->name());
+        assert(std::string("single") == std::string(node->name(), node->name_size()));
 	std::cout << text << std::endl;
         doc.validate();
         while (*text) {
