@@ -26,6 +26,7 @@
 #if defined(RAPIDXML_NO_EXCEPTIONS)
 
 #define RAPIDXML_PARSE_ERROR(what, where) { parse_error_handler(what, where); assert(0); }
+#define RAPIDXML_EOF_ERROR(what, where) { parse_error_handler(what, where); assert(0); }
 
 namespace rapidxml
 {
@@ -53,6 +54,7 @@ namespace rapidxml
 #include <stdexcept>    // For std::runtime_error
 
 #define RAPIDXML_PARSE_ERROR(what, where) throw parse_error(what, where)
+#define RAPIDXML_EOF_ERROR(what, where) throw eof_error(what, where)
 
 namespace rapidxml
 {
@@ -91,6 +93,10 @@ namespace rapidxml
 
     private:  
         void *m_where;
+    };
+
+    class eof_error : public parse_error {
+        eof_error(const char * what, void * where) : parse_error(what, where) {}
     };
 
     class validation_error : public std::runtime_error
