@@ -77,7 +77,7 @@ int main(int argc, char * argv[]) {
         doc.parse<0>(doc_text);
 
         auto node = doc.first_node();
-        std::cout << "<" << node->prefix() << ":" << node->name() << "/> " << node->xmlns() << std::endl;
+        std::cout << "Simple: <" << node->prefix() << ":" << node->name() << "/> " << node->xmlns() << std::endl;
         assert(std::string("single") == node->name());
         doc.validate();
     } catch(parse_error & e) {
