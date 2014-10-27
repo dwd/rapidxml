@@ -983,11 +983,11 @@ namespace rapidxml
         //! Consider using memory_pool of appropriate document to allocate nodes manually.
         //! \param type Type of node to construct.
         xml_node(node_type type)
-            : m_type(type)
+            : m_prefix(0)
+            , m_xmlns(0)
+            , m_type(type)
             , m_first_node(0)
             , m_first_attribute(0)
-            , m_xmlns(0)
-            , m_prefix(0)
         {
         }
 
