@@ -315,6 +315,18 @@ namespace rapidxml
             return out;
         }
 
+        // Print literal node
+        template<class OutIt, class Ch>
+        inline OutIt print_literal_node(OutIt out, const xml_node<Ch> *node, int flags, int indent)
+        {
+            assert(node->type() == node_literal);
+            if (!(flags & print_no_indenting))
+                out = fill_chars(out, indent, Ch('\t'));
+            out = copy_chars(node->value(), node->value() + node->value_size(), out);
+            return out;
+        }
+
+        // Print node
         // Print node
         template<class OutIt, class Ch>
         inline OutIt print_node(OutIt out, const xml_node<Ch> *node, int flags, int indent)
@@ -361,6 +373,10 @@ namespace rapidxml
             // Pi
             case node_pi:
                 out = print_pi_node(out, node, flags, indent);
+                break;
+
+            case node_literal:
+                out = print_literal_node(out, node, flags, indent);
                 break;
 
                 // Unknown

@@ -152,7 +152,8 @@ namespace rapidxml
         node_comment,       //!< A comment node. Name is empty. Value contains comment text.
         node_declaration,   //!< A declaration node. Name and value are empty. Declaration parameters (version, encoding and standalone) are in node attributes.
         node_doctype,       //!< A DOCTYPE node. Name is empty. Value contains DOCTYPE text.
-        node_pi             //!< A PI node. Name contains target. Value contains instructions.
+        node_pi,            //!< A PI node. Name contains target. Value contains instructions.
+	node_literal        //!< Value is unencoded text (used for inserting pre-rendered XML).
     };
 
     ///////////////////////////////////////////////////////////////////////
@@ -988,6 +989,8 @@ namespace rapidxml
             , m_type(type)
             , m_first_node(0)
             , m_first_attribute(0)
+            , m_contents(0)
+            , m_contents_size(0)
         {
         }
 
@@ -1019,6 +1022,20 @@ namespace rapidxml
         std::size_t prefix_size() const
         {
             return m_prefix ? m_prefix_size : 0;
+        }
+
+        void contents(Ch const * contents, std::size_t contents_size)
+        {
+            m_contents = contents;
+            m_contents_size = contents_size;
+        }
+        Ch const * contents() const
+        {
+            return m_contents;
+        }
+        std::size_t contents_size() const
+        {
+            return m_contents ? m_contents_size : 0;
         }
 
         Ch *xmlns() const
@@ -1055,7 +1072,7 @@ namespace rapidxml
                 *attrname++ = Ch(':');
                 while (*p) {
                     *attrname++ = *p++;
-                    if ((attrname - freeme) >= ptrdiff_t(prefix_size + 6)) break;
+                    if ((attrname - freeme) >= std::ptrdiff_t(prefix_size + 6)) break;
                 }
                 *attrname = Ch(0);
                 attrname = freeme;
@@ -1555,7 +1572,8 @@ namespace rapidxml
         xml_attribute<Ch> *m_last_attribute;    // Pointer to last attribute of node, or 0 if none; this value is only valid if m_first_attribute is non-zero
         xml_node<Ch> *m_prev_sibling;           // Pointer to previous sibling of node, or 0 if none; this value is only valid if m_parent is non-zero
         xml_node<Ch> *m_next_sibling;           // Pointer to next sibling of node, or 0 if none; this value is only valid if m_parent is non-zero
-
+        Ch const *m_contents;                   // Pointer to original contents in buffer.
+        std::size_t m_contents_size;
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -2349,9 +2367,12 @@ namespace rapidxml
             // Determine ending type
             if (*text == Ch('>'))
             {
-                ++text;
+                Ch const * contents = ++text;
+                Ch const * contents_end = 0;
                 if (!(Flags & parse_open_only))
-                    parse_node_contents<Flags>(text, element);
+                    contents_end = parse_node_contents<Flags>(text, element);
+                std::size_t sz = contents_end - contents;
+                if (sz) element->contents(contents, sz);
             }
             else if (*text == Ch('/'))
             {
@@ -2360,7 +2381,7 @@ namespace rapidxml
                     RAPIDXML_PARSE_ERROR("expected >", text);
                 ++text;
                 if (Flags & parse_open_only)
-                    RAPIDXML_PARSE_ERROR("only_only, but closed", text);
+                    RAPIDXML_PARSE_ERROR("open_only, but closed", text);
             }
             else
                 RAPIDXML_PARSE_ERROR("expected >", text);
@@ -2462,9 +2483,11 @@ namespace rapidxml
         }
 
         // Parse contents of the node - children, data etc.
+        // Return end pointer.
         template<int Flags>
-        void parse_node_contents(Ch *&text, xml_node<Ch> *node)
+        Ch * parse_node_contents(Ch *&text, xml_node<Ch> *node)
         {
+            Ch * retval = 0;
             // For all children and text
             while (1)
             {
@@ -2488,6 +2511,7 @@ namespace rapidxml
                     if (text[1] == Ch('/'))
                     {
                         // Node closing
+                        retval = text;
                         text += 2;      // Skip '</'
                         if (Flags & parse_validate_closing_tags)
                         {
@@ -2509,7 +2533,7 @@ namespace rapidxml
                         ++text;     // Skip '>'
                         if (Flags & parse_open_only)
                             RAPIDXML_PARSE_ERROR("Unclosed element actually closed.", text);
-                        return;     // Node closed, finished parsing contents
+                        return retval;     // Node closed, finished parsing contents
                     }
                     else
                     {
@@ -2523,7 +2547,7 @@ namespace rapidxml
                 // End of data - error unless we expected this.
                 case Ch('\0'):
                     if (Flags & parse_open_only) {
-                        return;
+                        return 0;
                     } else {
                         RAPIDXML_PARSE_ERROR("unexpected end of data", text);
                     }
