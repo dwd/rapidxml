@@ -514,7 +514,7 @@ namespace rapidxml
 
         Ch * nullstr()
         {
-            if (!m_nullstr);
+            if (!m_nullstr)
                 m_nullstr = allocate_string("");
             return m_nullstr;
         }
@@ -1055,7 +1055,7 @@ namespace rapidxml
                 *attrname++ = Ch(':');
                 while (*p) {
                     *attrname++ = *p++;
-                    if ((attrname - freeme) >= (prefix_size + 6)) break;
+                    if ((attrname - freeme) >= ptrdiff_t(prefix_size + 6)) break;
                 }
                 *attrname = Ch(0);
                 attrname = freeme;
