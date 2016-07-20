@@ -53,7 +53,7 @@ namespace rapidxml
 
 #include <stdexcept>    // For std::runtime_error
 
-#define RAPIDXML_PARSE_ERROR(what, where) throw parse_error(what, where)
+#define RAPIDXML_PARSE_ERROR(what, where) if (*where == Ch(0)) throw eof_error(what, where); else throw parse_error(what, where)
 #define RAPIDXML_EOF_ERROR(what, where) throw eof_error(what, where)
 
 namespace rapidxml
@@ -96,6 +96,7 @@ namespace rapidxml
     };
 
     class eof_error : public parse_error {
+    public:
         eof_error(const char * what, void * where) : parse_error(what, where) {}
     };
 
