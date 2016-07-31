@@ -53,7 +53,7 @@ namespace rapidxml
 
 #include <stdexcept>    // For std::runtime_error
 
-#define RAPIDXML_PARSE_ERROR(what, where) if (*where == Ch(0)) throw eof_error(what, where); else throw parse_error(what, where)
+#define RAPIDXML_PARSE_ERROR(what, where) {if (*where == Ch(0)) throw eof_error(what, where); else throw parse_error(what, where);} (void)0
 #define RAPIDXML_EOF_ERROR(what, where) throw eof_error(what, where)
 
 namespace rapidxml
@@ -2046,8 +2046,7 @@ namespace rapidxml
                 // Skip until end of declaration
                 while (text[0] != Ch('?') || text[1] != Ch('>'))
                 {
-                    if (!text[0])
-                        RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                    if (!text[0]) RAPIDXML_PARSE_ERROR("unexpected end of data", text);
                     ++text;
                 }
                 text += 2;    // Skip '?>'
@@ -2064,8 +2063,7 @@ namespace rapidxml
             parse_node_attributes<Flags>(text, declaration);
 
             // Skip ?>
-            if (text[0] != Ch('?') || text[1] != Ch('>'))
-                RAPIDXML_PARSE_ERROR("expected ?>", text);
+            if (text[0] != Ch('?') || text[1] != Ch('>')) RAPIDXML_PARSE_ERROR("expected ?>", text);
             text += 2;
 
             return declaration;
@@ -2081,8 +2079,7 @@ namespace rapidxml
                 // Skip until end of comment
                 while (text[0] != Ch('-') || text[1] != Ch('-') || text[2] != Ch('>'))
                 {
-                    if (!text[0])
-                        RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                    if (!text[0]) RAPIDXML_PARSE_ERROR("unexpected end of data", text);
                     ++text;
                 }
                 text += 3;     // Skip '-->'
@@ -2095,8 +2092,7 @@ namespace rapidxml
             // Skip until end of comment
             while (text[0] != Ch('-') || text[1] != Ch('-') || text[2] != Ch('>'))
             {
-                if (!text[0])
-                    RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                if (!text[0]) RAPIDXML_PARSE_ERROR("unexpected end of data", text);
                 ++text;
             }
 
@@ -2191,8 +2187,7 @@ namespace rapidxml
                 // Extract PI target name
                 Ch *name = text;
                 skip<node_name_pred, Flags>(text);
-                if (text == name)
-                    RAPIDXML_PARSE_ERROR("expected PI target", text);
+                if (text == name) RAPIDXML_PARSE_ERROR("expected PI target", text);
                 pi->name(name, text - name);
 
                 // Skip whitespace between pi target and pi
