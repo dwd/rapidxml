@@ -856,7 +856,7 @@ namespace rapidxml
 
         //! Constructs an empty attribute with the specified type.
         //! Consider using memory_pool of appropriate xml_document if allocating attributes manually.
-        xml_attribute() : m_prev_sattribute(0), m_next_attribute(0), m_xmlns(0), m_xmlns_size(0), m_local_name(0)
+        xml_attribute() : m_prev_attribute(0), m_next_attribute(0), m_xmlns(0), m_xmlns_size(0), m_local_name(0)
         {
         }
 
