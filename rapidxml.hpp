@@ -714,6 +714,8 @@ namespace rapidxml
         xml_base()
             : m_name(0)
             , m_value(0)
+            , m_name_size(0)
+            , m_value_size(0)
             , m_parent(0)
         {
         }
@@ -854,7 +856,7 @@ namespace rapidxml
 
         //! Constructs an empty attribute with the specified type.
         //! Consider using memory_pool of appropriate xml_document if allocating attributes manually.
-        xml_attribute() : m_xmlns(0), m_local_name(0)
+        xml_attribute() : m_prev_attribute(0), m_next_attribute(0), m_xmlns(0), m_xmlns_size(0), m_local_name(0)
         {
         }
 
@@ -987,9 +989,15 @@ namespace rapidxml
         xml_node(node_type type)
             : m_prefix(0)
             , m_xmlns(0)
+            , m_prefix_size(0)
+            , m_xmlns_size(0)
             , m_type(type)
             , m_first_node(0)
+            , m_last_node(0)
             , m_first_attribute(0)
+            , m_last_attribute(0)
+            , m_prev_sibling(0)
+            , m_next_sibling(0)
             , m_contents(0)
             , m_contents_size(0)
         {
@@ -1179,15 +1187,23 @@ namespace rapidxml
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
         //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters
         //! \return Pointer to found sibling, or 0 if not found.
-        xml_node<Ch> *previous_sibling(const Ch *name = 0, std::size_t name_size = 0, bool case_sensitive = true) const
+        xml_node<Ch> *previous_sibling(const Ch *name = 0, const Ch *xmlns = 0, std::size_t name_size = 0, std::size_t xmlns_size = 0, bool case_sensitive = true) const
         {
             assert(this->m_parent);     // Cannot query for siblings if node has no parent
             if (name)
             {
                 if (name_size == 0)
                     name_size = internal::measure(name);
+                if (xmlns && !xmlns_size) xmlns_size = internal::measure(xmlns);
+                if (!xmlns && name) {
+                    // No XMLNS asked for, but a name is present.
+                    // Assume "same XMLNS".
+                    xmlns = this->xmlns();
+                    xmlns_size = this->xmlns_size();
+                }
                 for (xml_node<Ch> *sibling = m_prev_sibling; sibling; sibling = sibling->m_prev_sibling)
-                    if (internal::compare(sibling->name(), sibling->name_size(), name, name_size, case_sensitive))
+                    if ((!name || internal::compare(sibling->name(), sibling->name_size(), name, name_size, case_sensitive))
+                        && (!xmlns || internal::compare(sibling->xmlns(), sibling->xmlns_size(), xmlns, xmlns_size, case_sensitive)))
                         return sibling;
                 return 0;
             }
@@ -1202,15 +1218,23 @@ namespace rapidxml
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
         //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters
         //! \return Pointer to found sibling, or 0 if not found.
-        xml_node<Ch> *next_sibling(const Ch *name = 0, std::size_t name_size = 0, bool case_sensitive = true) const
+        xml_node<Ch> *next_sibling(const Ch *name = 0, const Ch *xmlns = 0, std::size_t name_size = 0, std::size_t xmlns_size = 0, bool case_sensitive = true) const
         {
             assert(this->m_parent);     // Cannot query for siblings if node has no parent
             if (name)
             {
                 if (name_size == 0)
                     name_size = internal::measure(name);
+                if (xmlns && !xmlns_size) xmlns_size = internal::measure(xmlns);
+                if (!xmlns && name) {
+                    // No XMLNS asked for, but a name is present.
+                    // Assume "same XMLNS".
+                    xmlns = this->xmlns();
+                    xmlns_size = this->xmlns_size();
+                }
                 for (xml_node<Ch> *sibling = m_next_sibling; sibling; sibling = sibling->m_next_sibling)
-                    if (internal::compare(sibling->name(), sibling->name_size(), name, name_size, case_sensitive))
+                    if ((!name || internal::compare(sibling->name(), sibling->name_size(), name, name_size, case_sensitive))
+                        && (!xmlns || internal::compare(sibling->xmlns(), sibling->xmlns_size(), xmlns, xmlns_size, case_sensitive)))
                         return sibling;
                 return 0;
             }
