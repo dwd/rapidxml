@@ -1670,6 +1670,7 @@ namespace rapidxml
                 else
                     RAPIDXML_PARSE_ERROR("expected <", text);
             }
+            if (!this->first_node()) RAPIDXML_PARSE_ERROR("no root element", text);
             return text;
         }
         template<int Flags>
