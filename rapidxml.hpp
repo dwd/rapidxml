@@ -917,6 +917,31 @@ namespace rapidxml
                 return this->m_parent ? m_prev_attribute : 0;
         }
 
+        //! \brief Gets previous attribute, matching attribute name and namespace(can be 0), see https://www.w3.org/TR/REC-xml-names/#uniqAttrs.
+        //! \param name Name of attribute to find, must not be 0,
+        //! \param xmlns Namespace of the attribute, can be 0, which means no namespace.
+        //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string.
+        //! \param xmlns_size Size of namespace, in characters, or 0 to have size calculated automatically from string.
+        //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters.
+        //! \return Pointer to found attribute, or 0 if not found.
+        xml_attribute<Ch> *previous_attribute(const Ch *name, const Ch *xmlns, std::size_t name_size = 0, std::size_t xmlns_size = 0, bool case_sensitive = true) const
+        {
+            assert(name);
+
+            if (name_size == 0)
+                name_size = internal::measure(name);
+
+            if (xmlns && (xmlns_size == 0))
+                xmlns_size = internal::measure(xmlns);
+
+            for (xml_attribute<Ch> *attribute = m_prev_attribute; attribute; attribute = attribute->m_prev_attribute)
+                if (internal::compare(attribute->local_name(), attribute->local_name_size(), name, name_size, case_sensitive)
+                    && internal::compare(attribute->xmlns(), attribute->xmlns_size(), xmlns, xmlns_size, case_sensitive))
+                    return attribute;
+
+            return 0;
+        }
+
         //! Gets next attribute, optionally matching attribute name.
         //! \param name Name of attribute to find, or 0 to return next attribute regardless of its name; this string doesn't have to be zero-terminated if name_size is non-zero
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
@@ -935,6 +960,31 @@ namespace rapidxml
             }
             else
                 return this->m_parent ? m_next_attribute : 0;
+        }
+
+        //! \brief Gets next attribute, matching attribute name and namespace(can be 0), see https://www.w3.org/TR/REC-xml-names/#uniqAttrs.
+        //! \param name Name of attribute to find, must not be 0,
+        //! \param xmlns Namespace of the attribute, can be 0, which means no namespace.
+        //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string.
+        //! \param xmlns_size Size of namespace, in characters, or 0 to have size calculated automatically from string.
+        //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters.
+        //! \return Pointer to found attribute, or 0 if not found.
+        xml_attribute<Ch> *next_attribute(const Ch *name, const Ch *xmlns, std::size_t name_size = 0, std::size_t xmlns_size = 0, bool case_sensitive = true) const
+        {
+            assert(name);
+
+            if (name_size == 0)
+                name_size = internal::measure(name);
+
+            if (xmlns && (xmlns_size == 0))
+                xmlns_size = internal::measure(xmlns);
+
+            for (xml_attribute<Ch> *attribute = m_next_attribute; attribute; attribute = attribute->m_next_attribute)
+                if (internal::compare(attribute->local_name(), attribute->local_name_size(), name, name_size, case_sensitive)
+                    && internal::compare(attribute->xmlns(), attribute->xmlns_size(), xmlns, xmlns_size, case_sensitive))
+                    return attribute;
+
+            return 0;
         }
 
         Ch * local_name() const
@@ -1262,6 +1312,32 @@ namespace rapidxml
                 return m_first_attribute;
         }
 
+        //! \brief Gets first attribute of node, matching attribute name and namepsace.
+        //! \param name Name of attribute to find, must not be 0.
+        //! \param xmlns Namespace of the attribute, can be 0, which means no namespace.
+        //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string.
+        //! \param xmlns_size Size of namespace, in characters, or 0 to have size calculated automatically from string.
+        //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters.
+        //! \return Pointer to found attribute, or 0 if not found.
+        xml_attribute<Ch> *first_attribute(const Ch *name, const Ch *xmlns, std::size_t name_size = 0, std::size_t xmlns_size = 0, bool case_sensitive = true) const
+        {
+            assert(name);
+
+            if (name_size == 0)
+                name_size = internal::measure(name);
+
+            if (xmlns && (xmlns_size == 0))
+                xmlns_size = internal::measure(xmlns);
+
+
+            for (xml_attribute<Ch> *attribute = m_first_attribute; attribute; attribute = attribute->m_next_attribute)
+                if (internal::compare(attribute->local_name(), attribute->local_name_size(), name, name_size, case_sensitive)
+                    && internal::compare(attribute->xmlns(), attribute->xmlns_size(), xmlns, xmlns_size, case_sensitive))
+                        return attribute;
+
+            return 0;
+        }
+
         //! Gets last attribute of node, optionally matching attribute name.
         //! \param name Name of attribute to find, or 0 to return last attribute regardless of its name; this string doesn't have to be zero-terminated if name_size is non-zero
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
@@ -1280,6 +1356,32 @@ namespace rapidxml
             }
             else
                 return m_first_attribute ? m_last_attribute : 0;
+        }
+
+        //! \brief Gets last attribute of node, matching attribute name and namepsace.
+        //! \param name Name of attribute to find, must not be 0.
+        //! \param xmlns Namespace of the attribute, can be 0, which means no namespace.
+        //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string.
+        //! \param xmlns_size Size of namespace, in characters, or 0 to have size calculated automatically from string.
+        //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters.
+        //! \return Pointer to found attribute, or 0 if not found.
+        xml_attribute<Ch> *last_attribute(const Ch *name, const Ch *xmlns, std::size_t name_size = 0, std::size_t xmlns_size = 0, bool case_sensitive = true) const
+        {
+            assert(name);
+
+            if (name_size == 0)
+                name_size = internal::measure(name);
+
+            if (xmlns && (xmlns_size == 0))
+                xmlns_size = internal::measure(xmlns);
+
+
+            for (xml_attribute<Ch> *attribute = m_last_attribute; attribute; attribute = attribute->m_prev_attribute)
+                if (internal::compare(attribute->local_name(), attribute->local_name_size(), name, name_size, case_sensitive)
+                    && internal::compare(attribute->xmlns(), attribute->xmlns_size(), xmlns, xmlns_size, case_sensitive))
+                        return attribute;
+
+            return 0;
         }
 
         ///////////////////////////////////////////////////////////////////////////
