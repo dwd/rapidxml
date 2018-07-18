@@ -225,5 +225,39 @@ int main(int argc, char * argv[]) {
     } catch(validation_error & e) {
         std::cout << "Validation error: " << e.what() << std::endl;
     }
+
+    try {
+        char doc_text[] = "<single-element attr='one' pfx:attr=\"two\" xmlns:pfx='urn:fish'/>";
+        doc.parse<0>(doc_text);
+
+        auto node = doc.first_node();
+        assert(std::string("single-element") == node->name());
+        {
+            auto attr = node->first_attribute("attr");
+            assert(attr);
+            assert(std::string("one") == std::string(attr->value(), attr->value_size()));
+        }
+        {
+            auto attr = node->first_attribute("pfx:attr");
+            assert(attr);
+            assert(std::string("two") == std::string(attr->value(), attr->value_size()));
+        }
+        {
+            auto attr = node->first_attribute("attr", (const char *)NULL);
+            assert(attr);
+            assert(std::string("one") == std::string(attr->value(), attr->value_size()));
+        }
+        {
+            auto attr = node->first_attribute("attr", "urn:fish");
+            assert(attr);
+            assert(std::string("two") == std::string(attr->value(), attr->value_size()));
+        }
+        doc.validate();
+    } catch (parse_error &e) {
+        std::cout << "Parse error: " << e.what() << std::endl << "At: " << e.where<char>() << std::endl;
+    } catch(validation_error & e) {
+        std::cout << "Validation error: " << e.what() << std::endl;
+    }
+
     return 0;
 }
