@@ -877,20 +877,24 @@ namespace rapidxml
                 return 0;
         }
 
-        Ch * xmlns() const
+        Ch* xmlns() const
         {
-            if (m_xmlns) return m_xmlns;
-            Ch * p;
-            Ch * name = this->name();
+            if (m_xmlns)
+		return m_xmlns;
+            Ch* p;
+            Ch* name = this->name();
             for (p = name; *p && *p != ':'; ++p)
-                if ((p - name) >= this->name_size()) break;
-            if (!*p || ((p - name) >= this->name_size())) {
+                if (static_cast<size_t>(p - name) >= this->name_size())
+			break;
+            if (! *p || (static_cast<size_t>(p - name) >= this->name_size()))
+	    {
                 m_xmlns = document()->nullstr();
                 m_xmlns_size = 0;
                 return m_xmlns;
             }
-            xml_node<Ch> * element = this->parent();
-            if (element) element->xmlns_lookup(m_xmlns, m_xmlns_size, name, p - name);
+            xml_node<Ch>* element = this->parent();
+            if (element)
+		element->xmlns_lookup(m_xmlns, m_xmlns_size, name, p - name);
             return m_xmlns;
         }
         std::size_t xmlns_size() const
