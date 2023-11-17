@@ -1716,6 +1716,11 @@ namespace rapidxml
                     if (!(Flags & parse_no_string_terminators))
                         attr->value()[attr->value_size()] = 0;
                 }
+                if (element->value_size()) {
+                    Ch *  text = element->value();
+                    element->value("", 0);
+                    parse_and_append_data<Flags>(element, text, text);
+                }
                 if (recurse) {
                     for (xml_node<Ch> *child = element->first_node();
                          child;
