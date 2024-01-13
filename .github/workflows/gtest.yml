@@ -1,0 +1,24 @@
+name: gtest
+
+on:
+  push:
+    branches:
+      - master
+  pull_request_target:
+    branches:
+      - master
+
+jobs:
+  gtest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Make build directory
+        run: mkdir gtest-build
+      - name: CMake
+        run: cd gtest-build && cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE-CXX_FLAGS=-Werror ..
+      - name: Make
+        run: cd gtest-build && make
+      - name: Run Tests
+        run: cd gtest-build && rapidxml-test
