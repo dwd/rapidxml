@@ -106,6 +106,30 @@ namespace rapidxml
         validation_error(const char * what)
             : std::runtime_error(what) {}
     };
+
+    class xmlns_unbound : public validation_error {
+    public:
+        xmlns_unbound(const char * what)
+            : validation_error(what) {}
+    };
+
+    class duplicate_attribute : public validation_error {
+    public:
+        duplicate_attribute(const char * what)
+            : validation_error(what) {}
+    };
+
+    class attr_xmlns_unbound : public xmlns_unbound {
+    public:
+        attr_xmlns_unbound(const char * what)
+            : xmlns_unbound(what) {}
+    };
+
+    class element_xmlns_unbound : public xmlns_unbound {
+    public:
+        element_xmlns_unbound(const char * what)
+            : xmlns_unbound(what) {}
+    };
 }
 
 #endif
@@ -742,6 +766,10 @@ namespace rapidxml
             return m_name ? m_name_size : 0;
         }
 
+        std::string name_str() const {
+            return {m_name, m_name_size};
+        }
+
         //! Gets value of node.
         //! Interpretation of value depends on type of node.
         //! Note that value will not be zero-terminated if rapidxml::parse_no_string_terminators option was selected during parse.
@@ -759,6 +787,13 @@ namespace rapidxml
         std::size_t value_size() const
         {
             return m_value ? m_value_size : 0;
+        }
+
+
+        std::string value_str() const {
+            if (m_value && m_value_size)
+                return {m_value, m_value_size};
+            return {};
         }
         ///////////////////////////////////////////////////////////////////////////
         // Node modification
@@ -896,6 +931,11 @@ namespace rapidxml
         std::size_t xmlns_size() const
         {
             return this->xmlns() ? m_xmlns_size : 0;
+        }
+
+        std::string xmlns_str() const {
+            Ch * tmp_xmlns = this->xmlns();
+            return {tmp_xmlns, m_xmlns_size};
         }
         //! Gets previous attribute, optionally matching attribute name.
         //! \param name Name of attribute to find, or 0 to return previous attribute regardless of its name; this string doesn't have to be zero-terminated if name_size is non-zero
@@ -1120,6 +1160,11 @@ namespace rapidxml
             return m_xmlns_size;
         }
 
+
+        std::string xmlns_str() const {
+            Ch * tmp_xmlns = this->xmlns();
+            return {tmp_xmlns, m_xmlns_size};
+        }
         ///////////////////////////////////////////////////////////////////////////
         // Related nodes access
 
@@ -1541,7 +1586,7 @@ namespace rapidxml
         void validate() const
         {
             if (this->xmlns() == 0)
-                throw validation_error("Element XMLNS unbound");
+                throw element_xmlns_unbound("Element XMLNS unbound");
             for (xml_node<Ch> * child = this->first_node();
                  child;
                  child = child->next_sibling()) {
@@ -1551,16 +1596,16 @@ namespace rapidxml
                  attribute;
                  attribute = attribute->m_next_attribute) {
                 if (attribute->xmlns() == 0)
-                    throw validation_error("Attribute XMLNS unbound");
+                    throw attr_xmlns_unbound("Attribute XMLNS unbound");
                 for (xml_attribute<Ch> *otherattr = first_attribute();
                      otherattr != attribute;
                      otherattr = otherattr->m_next_attribute) {
                     if (internal::compare(attribute->name(), attribute->name_size(), otherattr->name(), otherattr->name_size(), true)) {
-                        throw validation_error("Attribute doubled");
+                        throw duplicate_attribute("Attribute doubled");
                     }
                     if (internal::compare(attribute->local_name(), attribute->local_name_size(), otherattr->local_name(), otherattr->local_name_size(), true)
                         && internal::compare(attribute->xmlns(), attribute->xmlns_size(), otherattr->xmlns(), otherattr->xmlns_size(), true))
-                        throw validation_error("Attribute XMLNS doubled");
+                        throw duplicate_attribute("Attribute XMLNS doubled");
                 }
             }
         }
