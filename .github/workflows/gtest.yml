@@ -21,4 +21,4 @@ jobs:
       - name: Make
         run: cd gtest-build && make
       - name: Run Tests
-        run: cd gtest-build && rapidxml-test
+        run: cd gtest-build && ./rapidxml-test
