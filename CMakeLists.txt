@@ -15,7 +15,10 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 add_executable(rapidxml-test
         test/parse-simple.cpp
-        test/parse-simple.cpp
+        rapidxml_iterators.hpp
+        rapidxml_print.hpp
+        rapidxml_utils.hpp
+        rapidxml.hpp
 )
 target_link_libraries(rapidxml-test
         GTest::gtest_main
