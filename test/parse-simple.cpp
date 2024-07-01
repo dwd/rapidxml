@@ -87,7 +87,7 @@ TEST(Parser, Xmlns) {
 
 TEST(Parser, ChildXmlns) {
     rapidxml::xml_document<> doc;
-    char doc_text[] = "<pfx:single xmlns:pfx='urn:xmpp:example'><pfx:firstchild/><child xmlns='urn:potato'/><pfx:child/></pfx:single>";
+    char doc_text[] = "<pfx:single xmlns:pfx='urn:xmpp:example' foo='bar'><pfx:firstchild/><child xmlns='urn:potato'/><pfx:child/></pfx:single>";
     doc.parse<0>(doc_text);
 
     auto node = doc.first_node();
@@ -99,10 +99,42 @@ TEST(Parser, ChildXmlns) {
     child = node->first_node();
     EXPECT_STREQ("firstchild", child->name());
     EXPECT_STREQ("urn:xmpp:example", child->xmlns());
+    child = child->next_sibling();
+    EXPECT_STREQ("child", child->name());
+    EXPECT_STREQ("urn:potato", child->xmlns());
+    child = child->next_sibling();
+    EXPECT_STREQ("child", child->name());
+    EXPECT_STREQ("urn:xmpp:example", child->xmlns());
     child = node->first_node("child");
     EXPECT_STREQ("child", child->name());
     EXPECT_STREQ("urn:xmpp:example", child->xmlns());
+    child = node->first_node()->next_sibling(nullptr, "urn:xmpp:example");
+    EXPECT_STREQ("child", child->name());
+    EXPECT_STREQ("urn:xmpp:example", child->xmlns());
+    child = node->first_node()->next_sibling("child");
+    // This will default to the same namespace as the first child ndoe.
+    EXPECT_STREQ("child", child->name());
+    EXPECT_STREQ("urn:xmpp:example", child->xmlns());
+    auto attr = node->first_attribute();
+    EXPECT_STREQ(attr->xmlns(), "http://www.w3.org/2000/xmlns/");
+    EXPECT_STREQ(attr->local_name(), "pfx");
+    EXPECT_STREQ(attr->name(), "xmlns:pfx");
+    EXPECT_EQ(attr->value_str(), "urn:xmpp:example");
+    attr = attr->next_attribute();
+    EXPECT_STREQ(attr->xmlns(), "");
+    EXPECT_STREQ(attr->local_name(), "foo");
+    EXPECT_STREQ(attr->name(), "foo");
+    EXPECT_EQ(attr->value_str(), "bar");
     doc.validate();
+}
+
+TEST(Parser, HandleEOF){
+    rapidxml::xml_document<> doc;
+    char doc_text[] = "<open_element>";
+    EXPECT_THROW(
+        doc.parse<0>(doc_text),
+        rapidxml::eof_error
+    );
 }
 
 TEST(ParseOptions, Fastest) {
@@ -226,4 +258,3 @@ TEST(ParseOptions, OpenOnlyFastest) {
         subdoc.validate();
     }
 }
-

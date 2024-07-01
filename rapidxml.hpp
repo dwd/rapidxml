@@ -1260,31 +1260,27 @@ namespace rapidxml
         //! Behaviour is undefined if node has no parent.
         //! Use parent() to test if node has a parent.
         //! \param name Name of sibling to find, or 0 to return next sibling regardless of its name; this string doesn't have to be zero-terminated if name_size is non-zero
+        //! \param xmlns Namespace of sibling to find, or 0 to return next sibling regardless of its name; this string doesn't have to be zero-terminated if name_size is non-zero
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
         //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters
         //! \return Pointer to found sibling, or 0 if not found.
         xml_node<Ch> *next_sibling(const Ch *name = 0, const Ch *xmlns = 0, std::size_t name_size = 0, std::size_t xmlns_size = 0, bool case_sensitive = true) const
         {
             assert(this->m_parent);     // Cannot query for siblings if node has no parent
-            if (name)
-            {
-                if (name_size == 0)
-                    name_size = internal::measure(name);
-                if (xmlns && !xmlns_size) xmlns_size = internal::measure(xmlns);
-                if (!xmlns && name) {
-                    // No XMLNS asked for, but a name is present.
-                    // Assume "same XMLNS".
-                    xmlns = this->xmlns();
-                    xmlns_size = this->xmlns_size();
-                }
-                for (xml_node<Ch> *sibling = m_next_sibling; sibling; sibling = sibling->m_next_sibling)
-                    if ((!name || internal::compare(sibling->name(), sibling->name_size(), name, name_size, case_sensitive))
-                        && (!xmlns || internal::compare(sibling->xmlns(), sibling->xmlns_size(), xmlns, xmlns_size, case_sensitive)))
-                        return sibling;
-                return 0;
+            if (name && name_size == 0)
+                name_size = internal::measure(name);
+            if (xmlns && !xmlns_size) xmlns_size = internal::measure(xmlns);
+            if (!xmlns && name) {
+                // No XMLNS asked for, but a name is present.
+                // Assume "same XMLNS".
+                xmlns = this->xmlns();
+                xmlns_size = this->xmlns_size();
             }
-            else
-                return m_next_sibling;
+            for (xml_node<Ch> *sibling = m_next_sibling; sibling; sibling = sibling->m_next_sibling)
+                if ((!name || internal::compare(sibling->name(), sibling->name_size(), name, name_size, case_sensitive))
+                    && (!xmlns || internal::compare(sibling->xmlns(), sibling->xmlns_size(), xmlns, xmlns_size, case_sensitive)))
+                    return sibling;
+            return 0;
         }
 
         //! Gets first attribute of node, optionally matching attribute name.
