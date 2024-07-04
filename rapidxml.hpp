@@ -1604,9 +1604,24 @@ namespace rapidxml
         }
 
         view_type decode_data_value(const xml_node<Ch> * node) {
-            const int Flags = parse_normalize_whitespace | parse_trim_whitespace;
             if (node->value_raw().empty()) return node->value_raw();
-            return decode_data_value_low<Flags>(node->value_raw());
+            if (m_parse_flags & parse_normalize_whitespace) {
+                if (m_parse_flags & parse_trim_whitespace) {
+                    const int Flags = parse_normalize_whitespace | parse_trim_whitespace;
+                    return decode_data_value_low<Flags>(node->value_raw());
+                } else {
+                    const int Flags = parse_normalize_whitespace;
+                    return decode_data_value_low<Flags>(node->value_raw());
+                }
+            } else {
+                if (m_parse_flags & parse_trim_whitespace) {
+                    const int Flags = parse_trim_whitespace;
+                    return decode_data_value_low<Flags>(node->value_raw());
+                } else {
+                    const int Flags = 0;
+                    return decode_data_value_low<Flags>(node->value_raw());
+                }
+            }
         }
 
         //! Terminates and/or decodes existing parsed tree,
