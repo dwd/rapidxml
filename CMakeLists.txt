@@ -20,6 +20,7 @@ add_executable(rapidxml-test
         rapidxml_utils.hpp
         rapidxml.hpp
         test/manipulations.cpp
+        test/round-trips.cpp
 )
 target_link_libraries(rapidxml-test
         GTest::gtest_main

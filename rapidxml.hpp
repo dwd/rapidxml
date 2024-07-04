@@ -696,7 +696,7 @@ namespace rapidxml
         //! <br><br>
         //! Use value_size() function to determine length of the value.
         //! \return Value of node, or empty string if node has no value.
-        view_type const & value() const
+        view_type const & value_raw() const
         {
             return m_value;
         }
@@ -737,7 +737,7 @@ namespace rapidxml
         //! If you want to manipulate data of elements using values, use parser flag rapidxml::parse_no_data_nodes to prevent creation of data nodes by the parser.
         //! \param value value of node to set. Does not have to be zero terminated.
         //! \param size Size of value, in characters. This does not include zero terminator, if one is present.
-        void value(view_type const & value)
+        void value_raw(view_type const & value)
         {
             m_value = value;
         }
@@ -780,6 +780,22 @@ namespace rapidxml
         xml_attribute() = default;
         xml_attribute(view_type const & name) : xml_base<Ch>(name) {}
         xml_attribute(view_type const & name, view_type const & value) : xml_base<Ch>(name, value) {}
+
+        void quote(Ch q) {
+            m_quote = q;
+        }
+        Ch quote() const {
+            return m_quote;
+        }
+
+        view_type const & value() const {
+            if (m_value.has_value()) return m_value.value();
+            m_value = document()->decode_attr_value(this);
+            return m_value.value();
+        }
+        void value(view_type const & v) {
+            m_value = v;
+        }
 
         ///////////////////////////////////////////////////////////////////////////
         // Related nodes access
@@ -859,7 +875,9 @@ namespace rapidxml
 
         xml_attribute<Ch> *m_prev_attribute = nullptr;        // Pointer to previous sibling of attribute, or 0 if none; only valid if parent is non-zero
         xml_attribute<Ch> *m_next_attribute = nullptr;        // Pointer to next sibling of attribute, or 0 if none; only valid if parent is non-zero
+        Ch m_quote = 0; // When parsing, this should be set to the containing quote for the value.
         mutable std::optional<view_type> m_xmlns;
+        mutable std::optional<view_type> m_value; // This is the decoded, not raw, value.
         mutable view_type m_local_name; // ATTN: points inside m_name.
     };
 
@@ -896,6 +914,13 @@ namespace rapidxml
 
         ///////////////////////////////////////////////////////////////////////////
         // Node data access
+        view_type const & value() const {
+            return this->value_raw();
+        }
+
+        void value(view_type const & v) {
+            this->value_raw(v);
+        }
 
         //! Gets type of node.
         //! \return Type of node.
@@ -1500,6 +1525,25 @@ namespace rapidxml
             this->remove_all_nodes();
             this->remove_all_attributes();
             memory_pool<Ch>::clear();
+        }
+
+        template<Ch Q>
+        view_type decode_attr_value_low(view_type const & v) {
+            auto buf = this->allocate_string(v);
+            Ch * start = const_cast<Ch *>(buf.data());
+            Ch * tmp = start;
+            Ch * end = skip_and_expand_character_refs<attribute_value_pred<Q>,attribute_value_pure_pred<Q>,0>(tmp);
+            return {start, end};
+        }
+
+        view_type decode_attr_value(const xml_attribute<Ch> * attr) {
+            if (attr->quote() == Ch('"')) {
+                return decode_attr_value_low<'"'>(attr->value_raw());
+            } else if (attr->quote() == Ch('\'')){
+                return decode_attr_value_low<'\''>(attr->value_raw());
+            } else {
+                return attr->value_raw();
+            }
         }
 
         //! Terminates and/or decodes existing parsed tree,
@@ -2392,18 +2436,20 @@ namespace rapidxml
                 Ch quote = *text;
                 if (quote != Ch('\'') && quote != Ch('"'))
                     RAPIDXML_PARSE_ERROR("expected ' or \"", text);
+                attribute->quote(quote);
                 ++text;
 
                 // Extract attribute value and expand char refs in it
                 Ch *value = text, *end;
                 const int AttFlags = Flags & ~parse_normalize_whitespace;   // No whitespace normalization in attributes
                 if (quote == Ch('\''))
-                    end = skip_and_expand_character_refs<attribute_value_pred<Ch('\'')>, attribute_value_pure_pred<Ch('\'')>, AttFlags>(text);
+                    skip<attribute_value_pred<Ch('\'')>, AttFlags>(text);
                 else
-                    end = skip_and_expand_character_refs<attribute_value_pred<Ch('"')>, attribute_value_pure_pred<Ch('"')>, AttFlags>(text);
+                    skip<attribute_value_pred<Ch('"')>, AttFlags>(text);
+                end = text;
 
                 // Set attribute value
-                attribute->value({value, end});
+                attribute->value_raw({value, end});
 
                 // Make sure that end quote is present
                 if (*text != quote)
