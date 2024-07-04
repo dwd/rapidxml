@@ -796,6 +796,9 @@ namespace rapidxml
         void value(view_type const & v) {
             m_value = v;
         }
+        bool value_decoded() const {
+            return !m_value.has_value() || m_value.value().data() != this->value_raw().data();
+        }
 
         ///////////////////////////////////////////////////////////////////////////
         // Related nodes access

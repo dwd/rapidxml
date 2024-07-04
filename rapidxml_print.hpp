@@ -131,24 +131,28 @@ namespace rapidxml
         {
             for (xml_attribute<Ch> *attribute = node->first_attribute(); attribute; attribute = attribute->next_attribute())
             {
-                if (!(attribute->name().empty()) || attribute->value().empty())
+                if (!(attribute->name().empty()) || attribute->value_raw().empty())
                 {
                     // Print attribute name
                     *out = Ch(' '), ++out;
                     out = copy_chars(attribute->name(), out);
                     *out = Ch('='), ++out;
-                    // Print attribute value using appropriate quote type
-                    if (attribute->value().find('"') != std::basic_string_view<Ch>::npos)
-                    {
-                        *out = Ch('\''), ++out;
-                        out = copy_and_expand_chars(attribute->value(), Ch('"'), out);
-                        *out = Ch('\''), ++out;
-                    }
-                    else
-                    {
-                        *out = Ch('"'), ++out;
-                        out = copy_and_expand_chars(attribute->value(), Ch('\''), out);
-                        *out = Ch('"'), ++out;
+                    if (attribute->quote() && !attribute->value_decoded()) {
+                        // Shortcut here; just dump out the raw value.
+                        *out++ = attribute->quote();
+                        out = copy_chars(attribute->value_raw(), out);
+                        **out++ = attribute->quote();
+                    } else {
+                        // Print attribute value using appropriate quote type
+                        if (attribute->value().find('"') != std::basic_string_view<Ch>::npos) {
+                            *out = Ch('\''), ++out;
+                            out = copy_and_expand_chars(attribute->value(), Ch('"'), out);
+                            *out = Ch('\''), ++out;
+                        } else {
+                            *out = Ch('"'), ++out;
+                            out = copy_and_expand_chars(attribute->value(), Ch('\''), out);
+                            *out = Ch('"'), ++out;
+                        }
                     }
                 }
             }
