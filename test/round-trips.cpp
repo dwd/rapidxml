@@ -51,3 +51,18 @@ TEST(RoundTrip, SimpleApos2) {
     // Have we mutated the underlying buffer?
     EXPECT_EQ(input, std::string(buffer.data(), buffer.size() - 1));
 }
+
+TEST(RoundTrip, SimpleLtBody) {
+    const char input[] = "<simple arg=\"&apos;\">&lt;</simple>";
+    const char expected[] = "<simple arg=\"'\">&lt;</simple>";
+    std::vector<char> buffer{input, input + sizeof(input)};
+    rapidxml::xml_document<> doc;
+    doc.parse<rapidxml::parse_full>(buffer.data());
+    auto output = print(doc);
+    EXPECT_EQ(doc.first_node()->value(), "<");
+    EXPECT_EQ(doc.first_node()->first_attribute()->value(), "'");
+    // Have we parsed correctly?
+    EXPECT_EQ(expected, output);
+    // Have we mutated the underlying buffer?
+    EXPECT_EQ(input, std::string(buffer.data(), buffer.size() - 1));
+}

@@ -166,7 +166,11 @@ namespace rapidxml
             assert(node->type() == node_data);
             if (!(flags & print_no_indenting))
                 out = fill_chars(out, indent, Ch('\t'));
-            out = copy_and_expand_chars(node->value(), Ch(0), out);
+            if (!node->value_decoded()) {
+                out = copy_chars(node->value_raw(), out);
+            } else {
+                out = copy_and_expand_chars(node->value(), Ch(0), out);
+            }
             return out;
         }
 
@@ -223,12 +227,20 @@ namespace rapidxml
                 if (!child)
                 {
                     // If node has no children, only print its value without indenting
-                    out = copy_and_expand_chars(node->value(), Ch(0), out);
+                    if (!node->value_decoded()) {
+                        out = copy_chars(node->value_raw(), out);
+                    } else {
+                        out = copy_and_expand_chars(node->value(), Ch(0), out);
+                    }
                 }
                 else if (child->next_sibling() == 0 && child->type() == node_data)
                 {
                     // If node has a sole data child, only print its value without indenting
-                    out = copy_and_expand_chars(child->value(), Ch(0), out);
+                    if (!child->value_decoded()) {
+                        out = copy_chars(child->value_raw(), out);
+                    } else {
+                        out = copy_and_expand_chars(child->value(), Ch(0), out);
+                    }
                 }
                 else
                 {

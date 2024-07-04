@@ -796,7 +796,9 @@ namespace rapidxml
         void value(view_type const & v) {
             m_value = v;
         }
+        // Return true if the value has been decoded.
         bool value_decoded() const {
+            // Either we don't have a decoded value, or we do but it's identical.
             return !m_value.has_value() || m_value.value().data() != this->value_raw().data();
         }
 
@@ -918,11 +920,21 @@ namespace rapidxml
         ///////////////////////////////////////////////////////////////////////////
         // Node data access
         view_type const & value() const {
-            return this->value_raw();
+            if (m_value.has_value()) return m_value.value();
+            if (m_type == node_element || m_type == node_data) {
+                m_value = document()->decode_data_value(this);
+            } else {
+                m_value = this->value_raw();
+            }
+            return m_value.value();
         }
 
         void value(view_type const & v) {
-            this->value_raw(v);
+            m_value = v;
+        }
+
+        bool value_decoded() const {
+            return !m_value.has_value() || m_value.value().data() != this->value_raw().data();
         }
 
         //! Gets type of node.
@@ -1440,6 +1452,7 @@ namespace rapidxml
         xml_node<Ch> *m_prev_sibling = nullptr;           // Pointer to previous sibling of node, or 0 if none; this value is only valid if m_parent is non-zero
         xml_node<Ch> *m_next_sibling = nullptr;           // Pointer to next sibling of node, or 0 if none; this value is only valid if m_parent is non-zero
         view_type m_contents;                   // Pointer to original contents in buffer.
+        mutable std::optional<view_type> m_value;
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -1480,6 +1493,7 @@ namespace rapidxml
         Ch * parse(Ch * text, xml_document<Ch> * parent = 0)
         {
             assert(text);
+            this->m_parse_flags = Flags;
 
             // Remove current contents
             this->remove_all_nodes();
@@ -1530,8 +1544,48 @@ namespace rapidxml
             memory_pool<Ch>::clear();
         }
 
+        template<int Flags>
+        view_type decode_data_value_low(view_type const & v) {
+            Ch * init = const_cast<Ch *>(v.data());
+            Ch * first = init;
+            if (Flags & parse_normalize_whitespace) {
+                skip<text_pure_with_ws_pred,0>(first);
+            } else {
+                skip<text_pure_no_ws_pred,0>(first);
+            }
+            if (*first == '<') return v;
+            auto buf = this->allocate_string(v);
+            Ch * start = const_cast<Ch *>(buf.data());
+            Ch * tmp = start;
+            Ch * end = (Flags & parse_normalize_whitespace) ?
+                    skip_and_expand_character_refs<text_pred,text_pure_with_ws_pred,Flags>(tmp) :
+                    skip_and_expand_character_refs<text_pred,text_pure_no_ws_pred,Flags>(tmp);
+            // Trim trailing whitespace if flag is set; leading was already trimmed by whitespace skip after >
+            if (Flags & parse_trim_whitespace)
+            {
+                if (Flags & parse_normalize_whitespace)
+                {
+                    // Whitespace is already condensed to single space characters by skipping function, so just trim 1 char off the end
+                    if (*(end - 1) == Ch(' '))
+                        --end;
+                }
+                else
+                {
+                    // Backup until non-whitespace character is found
+                    while (whitespace_pred::test(*(end - 1)))
+                        --end;
+                }
+            }
+
+            return {start, end};
+        }
+
         template<Ch Q>
         view_type decode_attr_value_low(view_type const & v) {
+            Ch * init = const_cast<Ch *>(v.data());
+            Ch * first = init;
+            skip<attribute_value_pure_pred<Q>,0>(first);
+            if (*first == Q) return v;
             auto buf = this->allocate_string(v);
             Ch * start = const_cast<Ch *>(buf.data());
             Ch * tmp = start;
@@ -1547,6 +1601,12 @@ namespace rapidxml
             } else {
                 return attr->value_raw();
             }
+        }
+
+        view_type decode_data_value(const xml_node<Ch> * node) {
+            const int Flags = parse_normalize_whitespace | parse_trim_whitespace;
+            if (node->value_raw().empty()) return node->value_raw();
+            return decode_data_value_low<Flags>(node->value_raw());
         }
 
         //! Terminates and/or decodes existing parsed tree,
@@ -2111,41 +2171,21 @@ namespace rapidxml
 
             // Skip until end of data
             Ch *value = text, *end;
-            if (Flags & parse_normalize_whitespace)
-                end = skip_and_expand_character_refs<text_pred, text_pure_with_ws_pred, Flags>(text);
-            else
-                end = skip_and_expand_character_refs<text_pred, text_pure_no_ws_pred, Flags>(text);
-
-            // Trim trailing whitespace if flag is set; leading was already trimmed by whitespace skip after >
-            if (Flags & parse_trim_whitespace)
-            {
-                if (Flags & parse_normalize_whitespace)
-                {
-                    // Whitespace is already condensed to single space characters by skipping function, so just trim 1 char off the end
-                    if (*(end - 1) == Ch(' '))
-                        --end;
-                }
-                else
-                {
-                    // Backup until non-whitespace character is found
-                    while (whitespace_pred::test(*(end - 1)))
-                        --end;
-                }
-            }
+            end = skip_and_expand_character_refs<text_pred, text_pure_no_ws_pred, parse_non_destructive>(text);
 
             // If characters are still left between end and value (this test is only necessary if normalization is enabled)
             // Create new data node
             if (!(Flags & parse_no_data_nodes))
             {
                 xml_node<Ch> *data = this->allocate_node(node_data);
-                data->value({value, end});
+                data->value_raw({value, end});
                 node->append_node(data);
             }
 
             // Add data to parent node if no data exists yet
             if (!(Flags & parse_no_element_values))
-                if (node->value().empty())
-                    node->value({value, end});
+                if (node->value_raw().empty())
+                    node->value_raw({value, end});
 
             // Return character that ends data
             return *text;
@@ -2463,7 +2503,8 @@ namespace rapidxml
                 skip<whitespace_pred, Flags>(text);
             }
         }
-
+    private:
+        int m_parse_flags = 0;
     };
 
     //! \cond internal
