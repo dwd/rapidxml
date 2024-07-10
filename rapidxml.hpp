@@ -10,7 +10,7 @@
 
 // If standard library is disabled, user must provide implementations of required functions and typedefs
 #if !defined(RAPIDXML_NO_STDLIB)
-    #include <cstdlib>      // For std::size_t
+    #include <cstdint>      // For std::size_t
     #include <cassert>      // For assert
     #include <new>          // For placement new
     #include <string>
@@ -107,31 +107,31 @@ namespace rapidxml
     class validation_error : public std::runtime_error
     {
     public:
-        validation_error(const char * what)
+        explicit validation_error(const char * what)
             : std::runtime_error(what) {}
     };
 
     class xmlns_unbound : public validation_error {
     public:
-        xmlns_unbound(const char * what)
+        explicit xmlns_unbound(const char * what)
             : validation_error(what) {}
     };
 
     class duplicate_attribute : public validation_error {
     public:
-        duplicate_attribute(const char * what)
+        explicit duplicate_attribute(const char * what)
             : validation_error(what) {}
     };
 
     class attr_xmlns_unbound : public xmlns_unbound {
     public:
-        attr_xmlns_unbound(const char * what)
+        explicit attr_xmlns_unbound(const char * what)
             : xmlns_unbound(what) {}
     };
 
     class element_xmlns_unbound : public xmlns_unbound {
     public:
-        element_xmlns_unbound(const char * what)
+        explicit element_xmlns_unbound(const char * what)
             : xmlns_unbound(what) {}
     };
 }
@@ -303,28 +303,18 @@ namespace rapidxml
     //! and using the flag will disable it.
     //! <br><br>
     //! See xml_document::parse() function.
-    const int parse_default = 0;
-
-    //! A combination of parse flags that forbids any modifications of the source text.
-    //! This also results in faster parsing. However, note that the following will occur:
-    //! <ul>
-    //! <li>names and values of nodes will not be zero terminated, you have to use xml_base::name_size() and xml_base::value_size() functions to determine where name and value ends</li>
-    //! <li>entities will not be translated</li>
-    //! <li>whitespace will not be normalized</li>
-    //! </ul>
-    //! See xml_document::parse() function.
-    const int parse_non_destructive = parse_no_entity_translation;
+    [[maybe_unused]] const int parse_default = 0;
 
     //! A combination of parse flags resulting in fastest possible parsing, without sacrificing important data.
     //! <br><br>
     //! See xml_document::parse() function.
-    const int parse_fastest = parse_non_destructive | parse_no_data_nodes;
+    const int parse_fastest = parse_no_data_nodes;
 
     //! A combination of parse flags resulting in largest amount of data being extracted.
     //! This usually results in slowest parsing.
     //! <br><br>
     //! See xml_document::parse() function.
-    const int parse_full = parse_declaration_node | parse_comment_nodes | parse_doctype_node | parse_pi_nodes | parse_validate_closing_tags;
+    const int parse_full = parse_declaration_node | parse_comment_nodes | parse_doctype_node | parse_pi_nodes | parse_validate_closing_tags | parse_validate_xmlns;
 
     ///////////////////////////////////////////////////////////////////////
     // Internals
@@ -334,7 +324,7 @@ namespace rapidxml
 
         // Struct that contains lookup tables for the parser
         // It must be a template to allow correct linking (because it has static data members, which are defined in a header file).
-        template<int Dummy>
+        template<int>
         struct lookup_tables {
             static const unsigned char lookup_whitespace[256];              // Whitespace table
             static const unsigned char lookup_node_name[256];               // Node name table
@@ -402,7 +392,7 @@ namespace rapidxml
         //! \endcond
 
         //! Constructs empty pool with default allocator functions.
-        memory_pool() {
+        memory_pool() : m_static_memory(0) {
             init();
         }
 
@@ -426,18 +416,10 @@ namespace rapidxml
         //! \param name_size Size of name to assign, or 0 to automatically calculate size from name string.
         //! \param value_size Size of value to assign, or 0 to automatically calculate size from value string.
         //! \return Pointer to allocated node. This pointer will never be NULL.
-        xml_node<Ch> *allocate_node(node_type type,
-                                    const Ch *name = 0, const Ch *value = 0,
-                                    std::size_t name_size = 0, std::size_t value_size = 0) {
-            return allocate_node(
-                    type,
-                    name ? name_size ? view_type(name, name_size) : view_type(name) : view_type(),
-                    value ? value_size ? view_type(value, value_size) : view_type(value) : view_type());
-        }
-
-        xml_node<Ch> * allocate_node(node_type type, view_type const & name, view_type const & value) {
+        template<typename... Args>
+        xml_node<Ch> * allocate_node(Args... args) {
             void *memory = allocate_aligned(sizeof(xml_node<Ch>));
-            auto *node = new(memory) xml_node<Ch>(type, name, value);
+            auto *node = new(memory) xml_node<Ch>(args...);
             return node;
         }
 
@@ -450,9 +432,10 @@ namespace rapidxml
         //! \param name_size Size of name to assign, or 0 to automatically calculate size from name string.
         //! \param value_size Size of value to assign, or 0 to automatically calculate size from value string.
         //! \return Pointer to allocated attribute. This pointer will never be NULL.
-        xml_attribute<Ch> *allocate_attribute(view_type name, view_type value={}) {
+        template<typename... Args>
+        xml_attribute<Ch> *allocate_attribute(Args... args) {
             void *memory = allocate_aligned(sizeof(xml_attribute<Ch>));
-            auto *attribute = new(memory) xml_attribute<Ch>(name, value);
+            auto *attribute = new(memory) xml_attribute<Ch>(args...);
             return attribute;
         }
 
@@ -566,7 +549,7 @@ namespace rapidxml
         //! </code><br>
         //! \param af Allocation function, or 0 to restore default function
         //! \param ff Free function, or 0 to restore default function
-        void set_allocator(alloc_func *af, free_func *ff)
+        [[maybe_unused]] void set_allocator(alloc_func *af, free_func *ff)
         {
             assert(m_begin == m_static_memory && m_ptr == align(m_begin));    // Verify that no memory is allocated yet
             m_alloc_func = af;
@@ -589,7 +572,7 @@ namespace rapidxml
 
         char *align(char *ptr)
         {
-            std::size_t alignment = ((RAPIDXML_ALIGNMENT - (std::size_t(ptr) & (RAPIDXML_ALIGNMENT - 1))) & (RAPIDXML_ALIGNMENT - 1));
+            std::size_t alignment = ((RAPIDXML_ALIGNMENT - (reinterpret_cast<std::intptr_t>(ptr) & (RAPIDXML_ALIGNMENT - 1))) & (RAPIDXML_ALIGNMENT - 1));
             return ptr + alignment;
         }
 
@@ -912,7 +895,7 @@ namespace rapidxml
         //! Constructs an empty node with the specified type.
         //! Consider using memory_pool of appropriate document to allocate nodes manually.
         //! \param type Type of node to construct.
-        xml_node(node_type type)
+        explicit xml_node(node_type type)
             : m_type(type)
         {
         }
@@ -1178,7 +1161,7 @@ namespace rapidxml
         //! Appends a new child node.
         //! The appended child becomes the last child.
         //! \param child Node to append.
-        void append_node(xml_node<Ch> *child)
+        optional_ptr<xml_node<Ch>> append_node(xml_node<Ch> *child)
         {
             assert(child && !child->parent() && child->type() != node_document);
             if (first_node())
@@ -1194,9 +1177,53 @@ namespace rapidxml
             m_last_node = child;
             child->m_parent = this;
             child->m_next_sibling = 0;
+            return child;
         }
-        void append_node(optional_ptr<xml_node<Ch>> ptr) {
-            append_node(ptr.get());
+        optional_ptr<xml_node<Ch>> append_node(optional_ptr<xml_node<Ch>> ptr) {
+            return append_node(ptr.get());
+        }
+        optional_ptr<xml_node<Ch>> append_element(view_type const & name) {
+            auto child = document()->allocate_node(node_element, name);
+            return append_node(child);
+        }
+        optional_ptr<xml_node<Ch>> append_element(std::tuple<view_type,view_type> const & clark_name) {
+            auto [xmlns, name] = clark_name;
+            xml_node<Ch> * child;
+            if (xmlns != this->xmlns()) {
+                child = document()->allocate_node(node_element, name);
+                child->append_attribute(document()->allocate_attribute("xmlns", xmlns));
+            } else if (!this->prefix().empty()) {
+                std::basic_string<Ch> pname = std::string(this->prefix()) + ':';
+                pname += name;
+                std::basic_string<Ch> xname = "xmlns:";
+                xname += this->prefix();
+                child = document()->allocate_node(node_element, name);
+                child->append_attribute(document()->allocate_attribute(xname, xmlns));
+            } else {
+                child = document()->allocate_node(node_element, name);
+            }
+            return append_node(child);
+        }
+        optional_ptr<xml_node<Ch>> append_element(view_type const & name, view_type const & value) {
+            auto child = append_element(name);
+            child->value(value);
+            return child;
+        }
+        optional_ptr<xml_node<Ch>> append_element(std::tuple<view_type,view_type> const & clark_name, view_type const & value) {
+            auto child = append_element(clark_name);
+            child->value(value);
+            return child;
+        }
+        optional_ptr<xml_node<Ch>> append_element(std::initializer_list<const Ch *> const & clark_name) {
+            auto it = clark_name.begin();
+            auto a = *it;
+            auto b = *++it;
+            return append_element({view_type(a), view_type(b)});
+        }
+        optional_ptr<xml_node<Ch>> append_element(std::initializer_list<const Ch *> const & clark_name, view_type const & value) {
+            auto child = append_element(clark_name);
+            child->value(value);
+            return child;
         }
 
         //! Inserts a new child node at specified place inside the node.
@@ -2472,7 +2499,7 @@ namespace rapidxml
                     RAPIDXML_PARSE_ERROR("expected attribute name", name);
 
                 // Create new attribute
-                xml_attribute<Ch> *attribute = this->allocate_attribute({name, text});
+                xml_attribute<Ch> *attribute = this->allocate_attribute(view_type{name, text});
                 node->append_attribute(attribute);
 
                 // Skip whitespace after attribute name

@@ -39,7 +39,7 @@ TEST(Create, NodeEmpty) {
 
 TEST(Create, Node2) {
     rapidxml::xml_document<> doc;
-    auto node = doc.allocate_node(rapidxml::node_element, "fish", "cakes", 4, 5);
+    auto node = doc.allocate_node(rapidxml::node_element, "fish", "cakes");
     doc.append_node(node);
 
     EXPECT_EQ(
@@ -89,5 +89,15 @@ TEST(Create, NodeAttr) {
     EXPECT_EQ(
         print(doc),
         "<fish>pie</fish>\n"
+    );
+    auto child = node->append_element({"urn:xmpp:fish:0", "shark"});
+    EXPECT_EQ(
+            print(doc),
+            "<fish>\n\t<shark xmlns=\"urn:xmpp:fish:0\"/>\n</fish>\n"
+    );
+    child->append_element({"urn:xmpp:fish:0", "species"}, "tiger");
+    EXPECT_EQ(
+            print(doc),
+            "<fish>\n\t<shark xmlns=\"urn:xmpp:fish:0\">\n\t\t<species>tiger</species>\n\t</shark>\n</fish>\n"
     );
 }
