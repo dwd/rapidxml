@@ -6,12 +6,15 @@
 // Revision $DateTime: 2009/05/13 01:46:17 $
 //! \file rapidxml.hpp This file contains rapidxml parser and DOM implementation
 
+#include "rapidxml_wrappers.hpp"
+
 // If standard library is disabled, user must provide implementations of required functions and typedefs
 #if !defined(RAPIDXML_NO_STDLIB)
     #include <cstdlib>      // For std::size_t
     #include <cassert>      // For assert
     #include <new>          // For placement new
     #include <string>
+    #include <optional>
 #endif
 
 // On MSVC, disable "conditional expression is constant" warning (level 4).
@@ -54,8 +57,8 @@ namespace rapidxml
 
 #include <stdexcept>    // For std::runtime_error
 
-#define RAPIDXML_PARSE_ERROR(what, where) {if (*where == Ch(0)) throw eof_error(what, where); else throw parse_error(what, where);} (void)0
-#define RAPIDXML_EOF_ERROR(what, where) throw eof_error(what, where)
+#define RAPIDXML_PARSE_ERROR(what, where) {if (*where == Ch(0)) throw eof_error(what, nullptr); else throw parse_error(what, nullptr);} (void)0
+#define RAPIDXML_EOF_ERROR(what, where) throw eof_error(what, nullptr)
 
 namespace rapidxml
 {
@@ -747,7 +750,7 @@ namespace rapidxml
 
         //! Gets node parent.
         //! \return Pointer to parent node, or 0 if there is no parent.
-        xml_node<Ch> *parent() const
+        optional_ptr<xml_node<Ch>> parent() const
         {
             return m_parent;
         }
@@ -807,12 +810,11 @@ namespace rapidxml
 
         //! Gets document of which attribute is a child.
         //! \return Pointer to document that contains this attribute, or 0 if there is no parent document.
-        xml_document<Ch> *document() const {
-            if (xml_node<Ch> *node = this->parent()) {
-                while (node->parent()) node = node->parent();
-                return node->type() == node_document ? static_cast<xml_document<Ch> *>(node) : 0;
+        optional_ptr<xml_document<Ch>> document() const {
+            if (auto node = this->parent()) {
+                return node->document();
             } else {
-                return 0;
+                return nullptr;
             }
         }
 
@@ -833,7 +835,7 @@ namespace rapidxml
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
         //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters
         //! \return Pointer to found attribute, or 0 if not found.
-        xml_attribute<Ch> *previous_attribute(view_type const & name = {}) const
+        optional_ptr<xml_attribute<Ch>> previous_attribute(view_type const & name = {}) const
         {
             if (name)
             {
@@ -851,17 +853,17 @@ namespace rapidxml
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
         //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters
         //! \return Pointer to found attribute, or 0 if not found.
-        xml_attribute<Ch> *next_attribute(view_type const & name = {}) const
+        optional_ptr<xml_attribute<Ch>> next_attribute(view_type const & name = {}) const
         {
             if (!name.empty())
             {
                 for (xml_attribute<Ch> *attribute = m_next_attribute; attribute; attribute = attribute->m_next_attribute)
                     if (attribute->name() == name)
                         return attribute;
-                return 0;
+                return nullptr;
             }
             else
-                return this->m_parent ? m_next_attribute : 0;
+                return this->m_parent ? m_next_attribute : nullptr;
         }
 
         view_type const & local_name() const
@@ -984,8 +986,8 @@ namespace rapidxml
             }
             for (const xml_node<Ch> * node = this;
                  node;
-                 node = node->parent()) {
-                const xml_attribute<Ch> * attr = node->first_attribute(attrname);
+                 node = node->m_parent) {
+                auto attr = node->first_attribute(attrname);
                 if (attr) {
                    return attr->value();
                 }
@@ -1005,11 +1007,11 @@ namespace rapidxml
 
         //! Gets document of which node is a child.
         //! \return Pointer to document that contains this node, or 0 if there is no parent document.
-        xml_document<Ch> *document() const
+        optional_ptr<xml_document<Ch>> document() const
         {
             auto *node = this;
             while (node->parent())
-                node = node->parent();
+                node = node->parent().get();
             return node->type() == node_document ? static_cast<xml_document<Ch> *>(const_cast<xml_node<Ch> *>(node)) : nullptr;
         }
 
@@ -1018,7 +1020,7 @@ namespace rapidxml
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
         //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters
         //! \return Pointer to found child, or 0 if not found.
-        xml_node<Ch> *first_node(view_type const & name = {}, view_type const & asked_xmlns = {}) const
+        optional_ptr<xml_node<Ch>> first_node(view_type const & name = {}, view_type const & asked_xmlns = {}) const
         {
             view_type xmlns = asked_xmlns;
             if (asked_xmlns.empty() && !name.empty()) {
@@ -1042,7 +1044,7 @@ namespace rapidxml
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
         //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters
         //! \return Pointer to found child, or 0 if not found.
-        xml_node<Ch> *last_node(view_type const & name = {}, view_type const & asked_xmlns = {}) const
+        optional_ptr<xml_node<Ch>> last_node(view_type const & name = {}, view_type const & asked_xmlns = {}) const
         {
             view_type xmlns = asked_xmlns;
             if (asked_xmlns.empty() && !name.empty()) {
@@ -1066,7 +1068,7 @@ namespace rapidxml
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
         //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters
         //! \return Pointer to found sibling, or 0 if not found.
-        xml_node<Ch> *previous_sibling(view_type const & name = {}, view_type const & asked_xmlns = {}) const
+        optional_ptr<xml_node<Ch>> previous_sibling(view_type const & name = {}, view_type const & asked_xmlns = {}) const
         {
             assert(this->m_parent);     // Cannot query for siblings if node has no parent
             if (name)
@@ -1095,7 +1097,7 @@ namespace rapidxml
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
         //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters
         //! \return Pointer to found sibling, or 0 if not found.
-        xml_node<Ch> *next_sibling(view_type const & name = {}, view_type const & asked_xmlns = {}) const
+        optional_ptr<xml_node<Ch>> next_sibling(view_type const & name = {}, view_type const & asked_xmlns = {}) const
         {
             assert(this->m_parent);     // Cannot query for siblings if node has no parent
             view_type xmlns = asked_xmlns;
@@ -1116,7 +1118,7 @@ namespace rapidxml
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
         //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters
         //! \return Pointer to found attribute, or 0 if not found.
-        xml_attribute<Ch> *first_attribute(view_type const & name = {}, view_type const & xmlns = {}) const
+        optional_ptr<xml_attribute<Ch>> first_attribute(view_type const & name = {}, view_type const & xmlns = {}) const
         {
             for (xml_attribute<Ch> *attribute = m_first_attribute; attribute; attribute = attribute->m_next_attribute)
                 if ((name.empty() || attribute->name() == name) && (xmlns.empty() || attribute->xmlns() == xmlns))
@@ -1129,7 +1131,7 @@ namespace rapidxml
         //! \param name_size Size of name, in characters, or 0 to have size calculated automatically from string
         //! \param case_sensitive Should name comparison be case-sensitive; non case-sensitive comparison works properly only for ASCII characters
         //! \return Pointer to found attribute, or 0 if not found.
-        xml_attribute<Ch> *last_attribute(view_type const & name = {}, view_type const & xmlns = {}) const
+        optional_ptr<xml_attribute<Ch>> last_attribute(view_type const & name = {}, view_type const & xmlns = {}) const
         {
             for (xml_attribute<Ch> *attribute = m_last_attribute; attribute; attribute = attribute->m_prev_attribute)
                 if ((name.empty() || attribute->name() == name) && (xmlns.empty() || attribute->xmlns() == xmlns))
@@ -1169,6 +1171,9 @@ namespace rapidxml
             child->m_parent = this;
             child->m_prev_sibling = 0;
         }
+        void prepend_node(optional_ptr<xml_node<Ch>> ptr) {
+            prepend_node(ptr.get());
+        }
 
         //! Appends a new child node.
         //! The appended child becomes the last child.
@@ -1189,6 +1194,9 @@ namespace rapidxml
             m_last_node = child;
             child->m_parent = this;
             child->m_next_sibling = 0;
+        }
+        void append_node(optional_ptr<xml_node<Ch>> ptr) {
+            append_node(ptr.get());
         }
 
         //! Inserts a new child node at specified place inside the node.
@@ -1266,9 +1274,9 @@ namespace rapidxml
         //! Removes all child nodes (but not attributes).
         void remove_all_nodes()
         {
-            for (xml_node<Ch> *node = first_node(); node; node = node->m_next_sibling)
-                node->m_parent = 0;
-            m_first_node = 0;
+            for (xml_node<Ch> *node = m_first_node; node; node = node->m_next_sibling)
+                node->m_parent = nullptr;
+            m_first_node = nullptr;
         }
 
         //! Prepends a new attribute to the node.
@@ -1387,9 +1395,9 @@ namespace rapidxml
         //! Removes all attributes of node.
         void remove_all_attributes()
         {
-            for (xml_attribute<Ch> *attribute = first_attribute(); attribute; attribute = attribute->m_next_attribute)
-                attribute->m_parent = 0;
-            m_first_attribute = 0;
+            for (xml_attribute<Ch> *attribute = m_first_attribute; attribute; attribute = attribute->m_next_attribute)
+                attribute->m_parent = nullptr;
+            m_first_attribute = nullptr;
         }
 
         void validate() const
@@ -1397,18 +1405,18 @@ namespace rapidxml
 //            if (this->xmlns().empty())
 //                throw element_xmlns_unbound("Element XMLNS unbound");
             this->xmlns();
-            for (xml_node<Ch> * child = this->first_node();
+            for (auto child = this->first_node();
                  child;
                  child = child->next_sibling()) {
                 child->validate();
             }
-            for (xml_attribute<Ch> *attribute = first_attribute();
+            for (auto attribute = first_attribute();
                  attribute;
                  attribute = attribute->m_next_attribute) {
 //                if (attribute->xmlns().empty())
 //                    throw attr_xmlns_unbound("Attribute XMLNS unbound");
                 attribute->xmlns();
-                for (xml_attribute<Ch> *otherattr = first_attribute();
+                for (auto otherattr = first_attribute();
                      otherattr != attribute;
                      otherattr = otherattr->m_next_attribute) {
                     if (attribute->name() == otherattr->name()) {
@@ -1489,16 +1497,31 @@ namespace rapidxml
         //! Document can be parsed into multiple times.
         //! Each new call to parse removes previous nodes and attributes (if any), but does not clear memory pool.
         //! \param text XML data to parse; pointer is non-const to denote fact that this data may be modified by the parser.
+        template<int Flags, typename Chp>
+        requires (std::is_pointer_v<Chp> && std::is_same_v<Ch, std::remove_pointer_t<Chp>>)
+        Chp parse(Chp text, xml_document<Ch> * parent = nullptr) {
+            return this->parse_low<Flags>(text, parent);
+        }
+
         template<int Flags>
-        Ch * parse(Ch * text, xml_document<Ch> * parent = 0)
-        {
-            assert(text);
+        void parse(std::basic_string<Ch> const & str, xml_document<Ch> * parent = nullptr) {
+            this->parse_low<Flags>(str.c_str(), parent);
+        }
+
+        template<int Flags, typename C>
+        requires std::is_same_v<Ch, typename C::value_type>
+        void parse(C const & container, xml_document<Ch> * parent = nullptr) {
+            this->parse_low<Flags>(buffer_ptr<C>(container), parent);
+        }
+
+        template<int Flags, typename T>
+        T parse_low(T text, xml_document<Ch> * parent) {
             this->m_parse_flags = Flags;
 
             // Remove current contents
             this->remove_all_nodes();
             this->remove_all_attributes();
-            this->m_parent = parent ? parent->first_node() : 0;
+            this->m_parent = parent ? parent->first_node().get() : nullptr;
 
             // Parse BOM, if any
             parse_bom<Flags>(text);
@@ -1624,54 +1647,18 @@ namespace rapidxml
             }
         }
 
-        //! Terminates and/or decodes existing parsed tree,
-        //! optionally recursively.
-        template<int Flags>
-        void fixup(xml_node<Ch> * element, bool recurse)
-        {
-            // Check the type.
-            if (element->type() == node_element) {
-                // Terminate name and attributes
-                for (xml_attribute<Ch> *attr = element->first_attribute();
-                     attr;
-                     attr = attr->next_attribute()) {
-                    Ch * value = const_cast<Ch *>(attr->value().data());
-                    Ch * p = value;
-                    Ch * end;
-                    const int AttFlags = Flags & ~parse_normalize_whitespace;   // No whitespace normalization in attributes
-                    Ch quote = value[-1];
-                    if (quote == Ch('\''))
-                        end = skip_and_expand_character_refs<attribute_value_pred<Ch('\'')>, attribute_value_pure_pred<Ch('\'')>, AttFlags>(p);
-                    else
-                        end = skip_and_expand_character_refs<attribute_value_pred<Ch('"')>, attribute_value_pure_pred<Ch('"')>, AttFlags>(p);
-                    attr->value({value, end});
-                }
-                if (element->value().size()) {
-                    Ch *  text = const_cast<Ch *>(element->value().data());
-                    element->value({});
-                    parse_and_append_data<Flags>(element, text, text);
-                }
-                if (recurse) {
-                    for (xml_node<Ch> *child = element->first_node();
-                         child;
-                         child = child->next_sibling()) {
-                        this->fixup<Flags>(child, true);
-                    }
-                }
-            }
-        }
-
-
         void validate() const
         {
-            for (xml_node<Ch> * child = this->first_node();
+            for (auto child = this->first_node();
                  child;
                  child = child->next_sibling()) {
                 child->validate();
             }
         }
 
+#ifndef RAPIDXML_TESTING
     private:
+#endif
 
         ///////////////////////////////////////////////////////////////////////
         // Internal character utility functions
@@ -1815,13 +1802,11 @@ namespace rapidxml
         }
 
         // Skip characters until predicate evaluates to true
-        template<class StopPred, int Flags>
-        static void skip(Ch *&text)
+        template<class StopPred, int Flags,  typename Chp>
+        static void skip(Chp & b)
         {
-            Ch *tmp = text;
-            while (StopPred::test(*tmp))
-                ++tmp;
-            text = tmp;
+            while (StopPred::test(*b))
+                ++b;
         }
 
         // Skip characters until predicate evaluates to true while doing the following:
@@ -1982,21 +1967,22 @@ namespace rapidxml
         // Internal parsing functions
 
         // Parse BOM, if any
-        template<int Flags>
-        void parse_bom(Ch *&text)
+        template<int Flags, typename Chp>
+        void parse_bom(Chp &texta)
         {
+            Chp text = texta;
             // UTF-8?
-            if (static_cast<unsigned char>(text[0]) == 0xEF &&
-                static_cast<unsigned char>(text[1]) == 0xBB &&
-                static_cast<unsigned char>(text[2]) == 0xBF)
+            if (static_cast<unsigned char>(*text++) == 0xEF &&
+                static_cast<unsigned char>(*text++) == 0xBB &&
+                static_cast<unsigned char>(*text++) == 0xBF)
             {
-                text += 3;      // Skup utf-8 bom
+                texta = text;      // Skup utf-8 bom
             }
         }
 
         // Parse XML declaration (<?xml...)
-        template<int Flags>
-        xml_node<Ch> *parse_xml_declaration(Ch *&text)
+        template<int Flags, typename Chp>
+        xml_node<Ch> *parse_xml_declaration(Chp &text)
         {
             // If parsing of declaration is disabled
             if (!(Flags & parse_declaration_node))
@@ -2028,8 +2014,8 @@ namespace rapidxml
         }
 
         // Parse XML comment (<!--...)
-        template<int Flags>
-        xml_node<Ch> *parse_comment(Ch *&text)
+        template<int Flags, typename Chp>
+        xml_node<Ch> *parse_comment(Chp &text)
         {
             // If parsing of comments is disabled
             if (!(Flags & parse_comment_nodes))
@@ -2045,7 +2031,7 @@ namespace rapidxml
             }
 
             // Remember value start
-            Ch *value = text;
+            Chp value = text;
 
             // Skip until end of comment
             while (text[0] != Ch('-') || text[1] != Ch('-') || text[2] != Ch('>'))
@@ -2063,11 +2049,11 @@ namespace rapidxml
         }
 
         // Parse DOCTYPE
-        template<int Flags>
-        xml_node<Ch> *parse_doctype(Ch *&text)
+        template<int Flags, typename Chp>
+        xml_node<Ch> *parse_doctype(Chp &text)
         {
             // Remember value start
-            Ch *value = text;
+            Chp value = text;
 
             // Skip to >
             while (*text != Ch('>'))
@@ -2125,8 +2111,8 @@ namespace rapidxml
         }
 
         // Parse PI
-        template<int Flags>
-        xml_node<Ch> *parse_pi(Ch *&text)
+        template<int Flags, typename Chp>
+        xml_node<Ch> *parse_pi(Chp &text)
         {
             // If creation of PI nodes is enabled
             if (Flags & parse_pi_nodes)
@@ -2135,7 +2121,7 @@ namespace rapidxml
                 xml_node<Ch> *pi = this->allocate_node(node_pi);
 
                 // Extract PI target name
-                Ch *name = text;
+                Chp name = text;
                 skip<node_name_pred, Flags>(text);
                 if (text == name) RAPIDXML_PARSE_ERROR("expected PI target", text);
                 pi->name({name, text});
@@ -2144,7 +2130,7 @@ namespace rapidxml
                 skip<whitespace_pred, Flags>(text);
 
                 // Remember start of pi
-                Ch *value = text;
+                Chp value = text;
 
                 // Skip to '?>'
                 while (text[0] != Ch('?') || text[1] != Ch('>'))
@@ -2177,38 +2163,47 @@ namespace rapidxml
         // Parse and append data
         // Return character that ends data.
         // This is necessary because this character might have been overwritten by a terminating 0
-        template<int Flags>
-        Ch parse_and_append_data(xml_node<Ch> *node, Ch *&text, Ch *contents_start)
+        template<int Flags, typename Chp>
+        Ch parse_and_append_data(xml_node<Ch> *node, Chp &text, Chp contents_start)
         {
             // Backup to contents start if whitespace trimming is disabled
             if (!(Flags & parse_trim_whitespace))
                 text = contents_start;
 
-            // Skip until end of data
-            Ch *value = text, *end;
-            end = skip_and_expand_character_refs<text_pred, text_pure_no_ws_pred, parse_non_destructive>(text);
+            // Skip until end of data. We should check if the contents will need decoding.
+            Chp value = text;
+            bool encoded = false;
+            skip<text_pure_no_ws_pred,0>(text);
+            if (text_pred::test(*text)) {
+                encoded = true;
+                skip<text_pred,0>(text);
+            }
 
             // If characters are still left between end and value (this test is only necessary if normalization is enabled)
             // Create new data node
             if (!(Flags & parse_no_data_nodes))
             {
                 xml_node<Ch> *data = this->allocate_node(node_data);
-                data->value_raw({value, end});
+                data->value_raw({value, text});
+                if (!encoded) data->value(data->value_raw());
                 node->append_node(data);
             }
 
             // Add data to parent node if no data exists yet
-            if (!(Flags & parse_no_element_values))
-                if (node->value_raw().empty())
-                    node->value_raw({value, end});
+            if (!(Flags & parse_no_element_values)) {
+                if (node->value_raw().empty()) {
+                    node->value_raw({value, text});
+                    if (!encoded) node->value(node->value_raw());
+                }
+            }
 
             // Return character that ends data
             return *text;
         }
 
         // Parse CDATA
-        template<int Flags>
-        xml_node<Ch> *parse_cdata(Ch *&text)
+        template<int Flags, typename Chp>
+        xml_node<Ch> *parse_cdata(Chp &text)
         {
             // If CDATA is disabled
             if (Flags & parse_no_data_nodes)
@@ -2225,7 +2220,7 @@ namespace rapidxml
             }
 
             // Skip until end of cdata
-            Ch *value = text;
+            Chp value = text;
             while (text[0] != Ch(']') || text[1] != Ch(']') || text[2] != Ch('>'))
             {
                 if (!text[0])
@@ -2242,21 +2237,22 @@ namespace rapidxml
         }
 
         // Parse element node
-        template<int Flags>
-        xml_node<Ch> *parse_element(Ch *&text)
+        template<int Flags, typename Chp>
+        xml_node<Ch> *parse_element(Chp &text)
         {
             // Create element node
             xml_node<Ch> *element = this->allocate_node(node_element);
 
             // Extract element name
-            Ch *prefix = text;
+            Chp prefix = text;
             skip<element_name_pred, Flags>(text);
             if (text == prefix)
                 RAPIDXML_PARSE_ERROR("expected element name or prefix", text);
             if (*text == Ch(':')) {
+                view_type * sv = new view_type(prefix, text);
                 element->prefix({prefix, text});
                 ++text;
-                Ch *name = text;
+                Chp name = text;
                 skip<node_name_pred, Flags>(text);
                 if (text == name)
                     RAPIDXML_PARSE_ERROR("expected element local name", text);
@@ -2274,8 +2270,8 @@ namespace rapidxml
             // Determine ending type
             if (*text == Ch('>'))
             {
-                Ch const * contents = ++text;
-                Ch const * contents_end = contents;
+                Chp contents = ++text;
+                Chp contents_end = contents;
                 if (!(Flags & parse_open_only))
                     contents_end = parse_node_contents<Flags>(text, element);
                 if (contents != contents_end) element->contents({contents, contents_end});
@@ -2297,8 +2293,8 @@ namespace rapidxml
         }
 
         // Determine node type, and parse it
-        template<int Flags>
-        xml_node<Ch> *parse_node(Ch *&text)
+        template<int Flags, typename Chp>
+        xml_node<Ch> *parse_node(Chp &text)
         {
             // Parse proper node type
             switch (text[0])
@@ -2384,15 +2380,15 @@ namespace rapidxml
 
         // Parse contents of the node - children, data etc.
         // Return end pointer.
-        template<int Flags>
-        Ch * parse_node_contents(Ch *&text, xml_node<Ch> *node)
+        template<int Flags, typename Chp>
+        Chp parse_node_contents(Chp &text, xml_node<Ch> *node)
         {
-            Ch * retval = 0;
+            Chp retval;
             // For all children and text
             while (1)
             {
                 // Skip whitespace between > and node contents
-                Ch *contents_start = text;      // Store start of node contents before whitespace is skipped
+                Chp contents_start = text;      // Store start of node contents before whitespace is skipped
                 skip<whitespace_pred, Flags>(text);
                 Ch next_char = *text;
 
@@ -2416,7 +2412,7 @@ namespace rapidxml
                         if (Flags & parse_validate_closing_tags)
                         {
                             // Skip and validate closing tag name
-                            Ch *closing_name = text;
+                            Chp closing_name = text;
                             skip<node_name_pred, Flags>(text);
                             if (node->name() != view_type{closing_name, text})
                                 RAPIDXML_PARSE_ERROR("invalid closing tag name", text);
@@ -2447,7 +2443,7 @@ namespace rapidxml
                 // End of data - error unless we expected this.
                 case Ch('\0'):
                     if (Flags & parse_open_only) {
-                        return 0;
+                        return Chp();
                     } else {
                         RAPIDXML_PARSE_ERROR("unexpected end of data", text);
                     }
@@ -2462,14 +2458,14 @@ namespace rapidxml
         }
 
         // Parse XML attributes of the node
-        template<int Flags>
-        void parse_node_attributes(Ch *&text, xml_node<Ch> *node)
+        template<int Flags, typename Chp>
+        void parse_node_attributes(Chp &text, xml_node<Ch> *node)
         {
             // For all attributes
             while (attribute_name_pred::test(*text))
             {
                 // Extract attribute name
-                Ch *name = text;
+                Chp name = text;
                 ++text;     // Skip first character of attribute name
                 skip<attribute_name_pred, Flags>(text);
                 if (text == name)
@@ -2498,7 +2494,8 @@ namespace rapidxml
                 ++text;
 
                 // Extract attribute value and expand char refs in it
-                Ch *value = text, *end;
+                Chp value = text;
+                Chp end;
                 const int AttFlags = Flags & ~parse_normalize_whitespace;   // No whitespace normalization in attributes
                 if (quote == Ch('\''))
                     skip<attribute_value_pred<Ch('\'')>, AttFlags>(text);

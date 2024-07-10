@@ -114,22 +114,22 @@ namespace rapidxml
 
         // Print node
         template<class OutIt, class Ch>
-        inline OutIt print_node(OutIt out, const xml_node<Ch> *node, int flags, int indent);
+        inline OutIt print_node(OutIt out, const optional_ptr<xml_node<Ch>> node, int flags, int indent);
     
         // Print children of the node                               
         template<class OutIt, class Ch>
-        inline OutIt print_children(OutIt out, const xml_node<Ch> *node, int flags, int indent)
+        inline OutIt print_children(OutIt out, const optional_ptr<xml_node<Ch>> node, int flags, int indent)
         {
-            for (xml_node<Ch> *child = node->first_node(); child; child = child->next_sibling())
+            for (auto child = node->first_node(); child; child = child->next_sibling())
                 out = print_node(out, child, flags, indent);
             return out;
         }
 
         // Print attributes of the node
         template<class OutIt, class Ch>
-        inline OutIt print_attributes(OutIt out, const xml_node<Ch> *node, int flags)
+        inline OutIt print_attributes(OutIt out, const optional_ptr<xml_node<Ch>> node, int flags)
         {
-            for (xml_attribute<Ch> *attribute = node->first_attribute(); attribute; attribute = attribute->next_attribute())
+            for (auto attribute = node->first_attribute(); attribute; attribute = attribute->next_attribute())
             {
                 if (!(attribute->name().empty()) || attribute->value_raw().empty())
                 {
@@ -161,7 +161,7 @@ namespace rapidxml
 
         // Print data node
         template<class OutIt, class Ch>
-        inline OutIt print_data_node(OutIt out, const xml_node<Ch> *node, int flags, int indent)
+        inline OutIt print_data_node(OutIt out, const optional_ptr<xml_node<Ch>> node, int flags, int indent)
         {
             assert(node->type() == node_data);
             if (!(flags & print_no_indenting))
@@ -176,7 +176,7 @@ namespace rapidxml
 
         // Print data node
         template<class OutIt, class Ch>
-        inline OutIt print_cdata_node(OutIt out, const xml_node<Ch> *node, int flags, int indent)
+        inline OutIt print_cdata_node(OutIt out, const optional_ptr<xml_node<Ch>> node, int flags, int indent)
         {
             assert(node->type() == node_cdata);
             if (!(flags & print_no_indenting))
@@ -199,7 +199,7 @@ namespace rapidxml
 
         // Print element node
         template<class OutIt, class Ch>
-        inline OutIt print_element_node(OutIt out, const xml_node<Ch> *node, int flags, int indent)
+        inline OutIt print_element_node(OutIt out, const optional_ptr<xml_node<Ch>> node, int flags, int indent)
         {
             assert(node->type() == node_element);
 
@@ -223,7 +223,7 @@ namespace rapidxml
                 *out = Ch('>'), ++out;
 
                 // Test if node contains a single data node only (and no other nodes)
-                xml_node<Ch> *child = node->first_node();
+                auto child = node->first_node();
                 if (!child)
                 {
                     // If node has no children, only print its value without indenting
@@ -233,7 +233,7 @@ namespace rapidxml
                         out = copy_and_expand_chars(node->value(), Ch(0), out);
                     }
                 }
-                else if (child->next_sibling() == 0 && child->type() == node_data)
+                else if (!child->next_sibling() && child->type() == node_data)
                 {
                     // If node has a sole data child, only print its value without indenting
                     if (!child->value_decoded()) {
@@ -263,7 +263,7 @@ namespace rapidxml
 
         // Print declaration node
         template<class OutIt, class Ch>
-        inline OutIt print_declaration_node(OutIt out, const xml_node<Ch> *node, int flags, int indent)
+        inline OutIt print_declaration_node(OutIt out, const optional_ptr<xml_node<Ch>> node, int flags, int indent)
         {
             // Print declaration start
             if (!(flags & print_no_indenting))
@@ -286,7 +286,7 @@ namespace rapidxml
 
         // Print comment node
         template<class OutIt, class Ch>
-        inline OutIt print_comment_node(OutIt out, const xml_node<Ch> *node, int flags, int indent)
+        inline OutIt print_comment_node(OutIt out, const optional_ptr<xml_node<Ch>> node, int flags, int indent)
         {
             assert(node->type() == node_comment);
             if (!(flags & print_no_indenting))
@@ -304,7 +304,7 @@ namespace rapidxml
 
         // Print doctype node
         template<class OutIt, class Ch>
-        inline OutIt print_doctype_node(OutIt out, const xml_node<Ch> *node, int flags, int indent)
+        inline OutIt print_doctype_node(OutIt out, const optional_ptr<xml_node<Ch>> node, int flags, int indent)
         {
             assert(node->type() == node_doctype);
             if (!(flags & print_no_indenting))
@@ -326,7 +326,7 @@ namespace rapidxml
 
         // Print pi node
         template<class OutIt, class Ch>
-        inline OutIt print_pi_node(OutIt out, const xml_node<Ch> *node, int flags, int indent)
+        inline OutIt print_pi_node(OutIt out, const optional_ptr<xml_node<Ch>> node, int flags, int indent)
         {
             assert(node->type() == node_pi);
             if (!(flags & print_no_indenting))
@@ -343,7 +343,7 @@ namespace rapidxml
 
         // Print literal node
         template<class OutIt, class Ch>
-        inline OutIt print_literal_node(OutIt out, const xml_node<Ch> *node, int flags, int indent)
+        inline OutIt print_literal_node(OutIt out, const optional_ptr<xml_node<Ch>> node, int flags, int indent)
         {
             assert(node->type() == node_literal);
             if (!(flags & print_no_indenting))
@@ -355,7 +355,7 @@ namespace rapidxml
         // Print node
         // Print node
         template<class OutIt, class Ch>
-        inline OutIt print_node(OutIt out, const xml_node<Ch> *node, int flags, int indent)
+        inline OutIt print_node(OutIt out, const optional_ptr<xml_node<Ch>> node, int flags, int indent)
         {
             // Print proper node type
             switch (node->type())
@@ -433,7 +433,8 @@ namespace rapidxml
     template<class OutIt, class Ch> 
     inline OutIt print(OutIt out, const xml_node<Ch> &node, int flags = 0)
     {
-        return internal::print_node(out, &node, flags, 0);
+        rapidxml::optional_ptr ptr(const_cast<xml_node<Ch> *>(&node));
+        return internal::print_node(out, ptr, flags, 0);
     }
 
 #ifndef RAPIDXML_NO_STREAMS

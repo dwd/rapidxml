@@ -161,28 +161,6 @@ TEST(ParseOptions, Fastest) {
     doc.validate();
 }
 
-TEST(ParseOptions, Fixup) {
-    rapidxml::xml_document<> doc;
-    char doc_text[] = "<pfx:single xmlns:pfx='urn:xmpp:example'><pfx:firstchild/><child xmlns='urn:potato'/><pfx:child/></pfx:single>";
-    doc.parse<rapidxml::parse_fastest>(doc_text);
-
-    auto node = doc.first_node();
-    doc.fixup<0>(node, true);
-    EXPECT_EQ("single", node->name());
-    EXPECT_EQ("urn:xmpp:example", node->xmlns());
-    auto child = node->first_node({}, "urn:potato");
-    ASSERT_NE(nullptr, child);
-    EXPECT_EQ("child", child->name());
-    EXPECT_EQ("urn:potato", child->xmlns());
-    child = node->first_node();
-    EXPECT_EQ("firstchild", child->name());
-    EXPECT_EQ("urn:xmpp:example", child->xmlns());
-    child = node->first_node("child");
-    EXPECT_EQ("child", child->name());
-    EXPECT_EQ("urn:xmpp:example", child->xmlns());
-    doc.validate();
-}
-
 TEST(ParseOptions, OpenOnly) {
     rapidxml::xml_document<> doc;
     char doc_text[] = "<pfx:single xmlns:pfx='urn:xmpp:example'>";

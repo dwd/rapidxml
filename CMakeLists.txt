@@ -21,6 +21,10 @@ add_executable(rapidxml-test
         rapidxml.hpp
         test/manipulations.cpp
         test/round-trips.cpp
+        test/low-level-parse.cpp
+        test/perf.cpp
+        rapidxml_wrappers.hpp
+        test/iterators.cpp
 )
 target_link_libraries(rapidxml-test
         GTest::gtest_main
@@ -29,5 +33,6 @@ target_include_directories(rapidxml-test
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
+target_compile_definitions(rapidxml-test PRIVATE RAPIDXML_TESTING=1)
 include(GoogleTest)
 gtest_discover_tests(rapidxml-test)
