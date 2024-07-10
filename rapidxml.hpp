@@ -1858,9 +1858,9 @@ namespace rapidxml
         {
             static unsigned char test(Ch ch)
             {
-                if (Quote == Ch('\''))
+                if (ch < 256 && Quote == Ch('\''))
                     return internal::lookup_tables<0>::lookup_attribute_data_1[static_cast<unsigned char>(ch)];
-                if (Quote == Ch('\"'))
+                if (ch < 256 && Quote == Ch('\"'))
                     return internal::lookup_tables<0>::lookup_attribute_data_2[static_cast<unsigned char>(ch)];
                 return 0;       // Should never be executed, to avoid warnings on Comeau
             }
@@ -1872,9 +1872,9 @@ namespace rapidxml
         {
             static unsigned char test(Ch ch)
             {
-                if (Quote == Ch('\''))
+                if (ch < 256 && Quote == Ch('\''))
                     return internal::lookup_tables<0>::lookup_attribute_data_1_pure[static_cast<unsigned char>(ch)];
-                if (Quote == Ch('\"'))
+                if (ch < 256 && Quote == Ch('\"'))
                     return internal::lookup_tables<0>::lookup_attribute_data_2_pure[static_cast<unsigned char>(ch)];
                 return 0;       // Should never be executed, to avoid warnings on Comeau
             }
