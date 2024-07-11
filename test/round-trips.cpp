@@ -26,6 +26,45 @@ TEST(RoundTrip, Simple) {
     EXPECT_EQ(input, std::string(buffer.data(), buffer.size() - 1));
 }
 
+TEST(RoundTrip, SimpleMod) {
+    const char input[] = "<pfx:simple xmlns:pfx=\"this\"><pfx:that/></pfx:simple>";
+    std::vector<char> buffer{input, input + sizeof(input)};
+    rapidxml::xml_document<> doc;
+    doc.parse<rapidxml::parse_full>(buffer.data());
+    auto output = print(doc);
+    // Have we parsed correctly?
+    EXPECT_EQ(input, output);
+    // Have we mutated the underlying buffer?
+    EXPECT_EQ(input, std::string(buffer.data(), buffer.size() - 1));
+    auto that = doc.first_node()->first_node();
+    doc.first_node()->remove_node(that);
+    auto output2 = print(doc);
+    EXPECT_EQ(output2, "<pfx:simple xmlns:pfx=\"this\"/>");
+    std::string xmlns = "that";
+    std::string name = "this";
+    auto check = doc.first_node()->append_element(name, "the other");
+    auto check2 = doc.first_node()->allocate_element(name, "another'");
+    doc.first_node()->append_node(check2);
+    EXPECT_EQ(name, "this");
+    EXPECT_EQ(check->name(), name);
+    EXPECT_EQ(check->name().data(), name.data());
+    doc.first_node()->append_element("odd", "the other");
+    doc.first_node()->append_element({xmlns, name}, "the other");
+    EXPECT_EQ(name, "this");
+    EXPECT_EQ(check->name(), name);
+    EXPECT_EQ(check->name().data(), name.data());
+    doc.first_node()->append_element({"this", "that"}, "the other");
+    doc.first_node()->append_element(name, "last time");
+    EXPECT_EQ(name, "this");
+    EXPECT_EQ(check->name(), name);
+    EXPECT_EQ(check->name().data(), name.data());
+    auto output3 = print(doc);
+    EXPECT_EQ(name, "this");
+    EXPECT_EQ(check->name(), name);
+    EXPECT_EQ(check->name().data(), name.data());
+    EXPECT_EQ(output3, "<pfx:simple xmlns:pfx=\"this\"><this>the other</this><this>another&apos;</this><odd>the other</odd><this xmlns=\"that\">the other</this><pfx:that>the other</pfx:that><this>last time</this></pfx:simple>");
+}
+
 TEST(RoundTrip, SimpleApos) {
     const char input[] = "<simple arg=\"'\"/>";
     std::vector<char> buffer{input, input + sizeof(input)};

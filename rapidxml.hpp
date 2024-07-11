@@ -463,6 +463,11 @@ namespace rapidxml
         }
 
         template<typename Sch>
+        view_type allocate_string(std::basic_string<Sch> const & source) {
+            return allocate_string(source.data(), source.size());
+        }
+
+        template<typename Sch>
         view_type allocate_string(const Sch * source) {
             return allocate_string(std::basic_string_view<Sch>(source));
         }
@@ -936,6 +941,14 @@ namespace rapidxml
             return m_prefix;
         }
 
+        void qname(view_type const & qname) {
+            m_qname = qname;
+        }
+
+        view_type const & qname() const {
+            return m_qname;
+        }
+
         void contents(view_type const & contents) {
             m_contents = contents;
         }
@@ -1134,10 +1147,55 @@ namespace rapidxml
         ///////////////////////////////////////////////////////////////////////////
         // Node manipulation
 
+        //! Allocate a new element to be added as a child at this node.
+        //! If an XMLNS is specified via the clarke notation syntax, then the prefix will match the parent element (if any),
+        //! and any needed xmlns attributes will be added for you.
+        //! Strings are assumed to remain in scope - you should document()->allocate_string() any that might not.
+        //! \param name Name of the element, either string view, string, or clarke notation
+        optional_ptr<xml_node<Ch>> allocate_element(view_type const & name) {
+            return document()->allocate_node(node_element, name);
+        }
+        optional_ptr<xml_node<Ch>> allocate_element(std::tuple<view_type,view_type> const & clark_name) {
+            auto [xmlns, name] = clark_name;
+            xml_node<Ch> * child;
+            if (xmlns != this->xmlns()) {
+                child = document()->allocate_node(node_element, name);
+                child->append_attribute(document()->allocate_attribute("xmlns", xmlns));
+            } else if (!this->prefix().empty()) {
+                std::basic_string<Ch> pname = std::string(this->prefix()) + ':';
+                pname += name;
+                child = document()->allocate_node(node_element, document()->allocate_string(pname));
+            } else {
+                child = document()->allocate_node(node_element, name);
+            }
+            return child;
+        }
+        optional_ptr<xml_node<Ch>> allocate_element(view_type const & name, view_type const & value) {
+            auto child = allocate_element(name);
+            child->value(value);
+            return child;
+        }
+        optional_ptr<xml_node<Ch>> allocate_element(std::tuple<view_type,view_type> const & clark_name, view_type const & value) {
+            auto child = allocate_element(clark_name);
+            child->value(value);
+            return child;
+        }
+        optional_ptr<xml_node<Ch>> allocate_element(std::initializer_list<const Ch *> const & clark_name) {
+            auto it = clark_name.begin();
+            auto a = *it;
+            auto b = *++it;
+            return allocate_element({view_type(a), view_type(b)});
+        }
+        optional_ptr<xml_node<Ch>> allocate_element(std::initializer_list<const Ch *> const & clark_name, view_type const & value) {
+            auto child = allocate_element(clark_name);
+            child->value(value);
+            return child;
+        }
+
         //! Prepends a new child node.
         //! The prepended child becomes the first child, and all existing children are moved one position back.
         //! \param child Node to prepend.
-        void prepend_node(xml_node<Ch> *child)
+        optional_ptr<xml_node<Ch>> prepend_node(xml_node<Ch> *child)
         {
             assert(child && !child->parent() && child->type() != node_document);
             if (first_node())
@@ -1153,9 +1211,25 @@ namespace rapidxml
             m_first_node = child;
             child->m_parent = this;
             child->m_prev_sibling = 0;
+            return child;
         }
-        void prepend_node(optional_ptr<xml_node<Ch>> ptr) {
-            prepend_node(ptr.get());
+        auto prepend_node(optional_ptr<xml_node<Ch>> ptr) {
+            return prepend_node(ptr.get());
+        }
+        template<typename... Args>
+        auto prepend_element(view_type const & v, Args... args) {
+            auto child = allocate_element(v, args...);
+            return prepend_node(child);
+        }
+        template<typename... Args>
+        auto prepend_element(std::tuple<view_type, view_type> const & il, Args... args) {
+            auto child = allocate_element(il, args...);
+            return prepend_node(child);
+        }
+        template<typename... Args>
+        auto prepend_element(std::initializer_list<const Ch *> const & il, Args... args) {
+            auto child = allocate_element(il, args...);
+            return prepend_node(child);
         }
 
         //! Appends a new child node.
@@ -1182,55 +1256,27 @@ namespace rapidxml
         optional_ptr<xml_node<Ch>> append_node(optional_ptr<xml_node<Ch>> ptr) {
             return append_node(ptr.get());
         }
-        optional_ptr<xml_node<Ch>> append_element(view_type const & name) {
-            auto child = document()->allocate_node(node_element, name);
+        template<typename... Args>
+        auto append_element(view_type const & v, Args... args) {
+            auto child = allocate_element(v, args...);
             return append_node(child);
         }
-        optional_ptr<xml_node<Ch>> append_element(std::tuple<view_type,view_type> const & clark_name) {
-            auto [xmlns, name] = clark_name;
-            xml_node<Ch> * child;
-            if (xmlns != this->xmlns()) {
-                child = document()->allocate_node(node_element, name);
-                child->append_attribute(document()->allocate_attribute("xmlns", xmlns));
-            } else if (!this->prefix().empty()) {
-                std::basic_string<Ch> pname = std::string(this->prefix()) + ':';
-                pname += name;
-                std::basic_string<Ch> xname = "xmlns:";
-                xname += this->prefix();
-                child = document()->allocate_node(node_element, name);
-                child->append_attribute(document()->allocate_attribute(xname, xmlns));
-            } else {
-                child = document()->allocate_node(node_element, name);
-            }
+        template<typename... Args>
+        auto append_element(std::tuple<view_type, view_type> const & il, Args... args) {
+            auto child = allocate_element(il, args...);
             return append_node(child);
         }
-        optional_ptr<xml_node<Ch>> append_element(view_type const & name, view_type const & value) {
-            auto child = append_element(name);
-            child->value(value);
-            return child;
-        }
-        optional_ptr<xml_node<Ch>> append_element(std::tuple<view_type,view_type> const & clark_name, view_type const & value) {
-            auto child = append_element(clark_name);
-            child->value(value);
-            return child;
-        }
-        optional_ptr<xml_node<Ch>> append_element(std::initializer_list<const Ch *> const & clark_name) {
-            auto it = clark_name.begin();
-            auto a = *it;
-            auto b = *++it;
-            return append_element({view_type(a), view_type(b)});
-        }
-        optional_ptr<xml_node<Ch>> append_element(std::initializer_list<const Ch *> const & clark_name, view_type const & value) {
-            auto child = append_element(clark_name);
-            child->value(value);
-            return child;
+        template<typename... Args>
+        auto append_element(std::initializer_list<const Ch *> const & il, Args... args) {
+            auto child = allocate_element(il, args...);
+            return append_node(child);
         }
 
         //! Inserts a new child node at specified place inside the node.
         //! All children after and including the specified node are moved one position back.
         //! \param where Place where to insert the child, or 0 to insert at the back.
         //! \param child Node to insert.
-        void insert_node(xml_node<Ch> *where, xml_node<Ch> *child)
+        optional_ptr<xml_node<Ch>> insert_node(xml_node<Ch> *where, xml_node<Ch> *child)
         {
             assert(!where || where->parent() == this);
             assert(child && !child->parent() && child->type() != node_document);
@@ -1246,6 +1292,25 @@ namespace rapidxml
                 where->m_prev_sibling = child;
                 child->m_parent = this;
             }
+            return child;
+        }
+        auto insert_node(optional_ptr<xml_node<Ch>> where, optional_ptr<xml_node<Ch>> ptr) {
+            return insert_node(where.ptr(), ptr.ptr());
+        }
+        template<typename... Args>
+        auto insert_element(optional_ptr<xml_node<Ch>> where, view_type const & v, Args... args) {
+            auto child = allocate_element(v, args...);
+            return insert_node(where, child);
+        }
+        template<typename... Args>
+        auto insert_element(optional_ptr<xml_node<Ch>> where, std::tuple<view_type, view_type> const & il, Args... args) {
+            auto child = allocate_element(il, args...);
+            return insert_node(where, child);
+        }
+        template<typename... Args>
+        auto insert_element(optional_ptr<xml_node<Ch>> where, std::initializer_list<const Ch *> const & il, Args... args) {
+            auto child = allocate_element(il, args...);
+            return insert_node(where, child);
         }
 
         //! Removes first child node.
@@ -1282,9 +1347,9 @@ namespace rapidxml
 
         //! Removes specified child from the node
         // \param where Pointer to child to be removed.
-        void remove_node(xml_node<Ch> *where)
+        void remove_node(optional_ptr<xml_node<Ch>> where)
         {
-            assert(where && where->parent() == this);
+            assert(where->parent() == this);
             assert(first_node());
             if (where == m_first_node)
                 remove_first_node();
@@ -1304,6 +1369,7 @@ namespace rapidxml
             for (xml_node<Ch> *node = m_first_node; node; node = node->m_next_sibling)
                 node->m_parent = nullptr;
             m_first_node = nullptr;
+            m_last_node = nullptr;
         }
 
         //! Prepends a new attribute to the node.
@@ -1478,6 +1544,7 @@ namespace rapidxml
         // 3. prev_sibling and next_sibling are valid only if node has a parent, otherwise they contain garbage
 
         view_type m_prefix;
+        view_type m_qname;
         mutable std::optional<view_type> m_xmlns; // Cache
         node_type m_type;                       // Type of node; always valid
         xml_node<Ch> *m_first_node = nullptr;             // Pointer to first child node, or 0 if none; always valid
@@ -2284,8 +2351,10 @@ namespace rapidxml
                 if (text == name)
                     RAPIDXML_PARSE_ERROR("expected element local name", text);
                 element->name({name, text});
+                element->qname({prefix, text});
             } else {
                 element->name({prefix, text});
+                element->qname(element->name());
             }
 
             // Skip whitespace between element name and attributes or >
@@ -2441,7 +2510,7 @@ namespace rapidxml
                             // Skip and validate closing tag name
                             Chp closing_name = text;
                             skip<node_name_pred, Flags>(text);
-                            if (node->name() != view_type{closing_name, text})
+                            if (node->qname() != view_type{closing_name, text})
                                 RAPIDXML_PARSE_ERROR("invalid closing tag name", text);
                         }
                         else

@@ -207,6 +207,10 @@ namespace rapidxml
             if (!(flags & print_no_indenting))
                 out = fill_chars(out, indent, Ch('\t'));
             *out = Ch('<'), ++out;
+            if (!node->prefix().empty()) {
+                out = copy_chars(node->prefix(), out);
+                *out = Ch(':'); ++out;
+            }
             out = copy_chars(node->name(), out);
             out = print_attributes(out, node, flags);
             
@@ -255,6 +259,10 @@ namespace rapidxml
                 // Print node end
                 *out = Ch('<'), ++out;
                 *out = Ch('/'), ++out;
+                if (!node->prefix().empty()) {
+                    out = copy_chars(node->prefix(), out);
+                    *out = Ch(':'); ++out;
+                }
                 out = copy_chars(node->name(), out);
                 *out = Ch('>'), ++out;
             }
