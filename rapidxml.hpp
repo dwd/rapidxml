@@ -1175,6 +1175,7 @@ namespace rapidxml
         //! and any needed xmlns attributes will be added for you.
         //! Strings are assumed to remain in scope - you should document()->allocate_string() any that might not.
         //! \param name Name of the element, either string view, string, or clarke notation
+    protected: // These are too easy to accidentally forget to append, prepend, or insert.
         optional_ptr<xml_node<Ch>> allocate_element(view_type const & name) {
             return document()->allocate_node(node_element, name);
         }
@@ -1214,6 +1215,7 @@ namespace rapidxml
             child->value(value);
             return child;
         }
+    public:
 
         //! Prepends a new child node.
         //! The prepended child becomes the first child, and all existing children are moved one position back.

@@ -43,8 +43,7 @@ TEST(RoundTrip, SimpleMod) {
     std::string xmlns = "that";
     std::string name = "this";
     auto check = doc.first_node()->append_element(name, "the other");
-    auto check2 = doc.first_node()->allocate_element(name, "another'");
-    doc.first_node()->append_node(check2);
+    auto check2 = doc.first_node()->append_element(name, "another'");
     EXPECT_EQ(name, "this");
     EXPECT_EQ(check->name(), name);
     EXPECT_EQ(check->name().data(), name.data());
