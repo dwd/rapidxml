@@ -13,9 +13,12 @@ It has breaking changes, the largest of which are:
 * No more case insensitive option. Really, nobody should be using XML case insensitively anyway, but it was too difficult to keep around, sorry.
 * Instead of passing around potentially unterminated character pointers with optional lengths, we now use std::basic_string_view
 * There is no need for string termination, now, so the parse function never terminates, and that option has vanished.
+* Return values that were previously bare pointers are now a safe wrapped pointer which ordinarily will check/throw for nullptr.
 
 Internal changes:
 * There is no longer a internal::measure or internal::compare; these just use the std::char_traits<Ch> functions as used by the string_views.
+
+TODO: attribute allocation in-place?
 
 ### Gotchas
 

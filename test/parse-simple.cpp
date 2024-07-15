@@ -17,6 +17,22 @@ TEST(Parser, SingleElement) {
     doc.validate();
 }
 
+TEST(Parser, DefaultElementNS) {
+    char doc_text[] = "<element xmlns='this'><child/></element>";
+    rapidxml::xml_document<> doc;
+    doc.parse<rapidxml::parse_fastest | rapidxml::parse_parse_one>(doc_text);
+
+    auto node = doc.first_node();
+    EXPECT_NE(nullptr, node);
+    EXPECT_FALSE(node->name().empty());
+    EXPECT_EQ("element", node->name());
+    EXPECT_EQ(node->xmlns(), "this");
+    auto child = node->first_node();
+    EXPECT_EQ(child->name(), "child");
+    EXPECT_EQ(child->xmlns(), "this");
+    doc.validate();
+}
+
 TEST(Parser, UnboundPrefix) {
     rapidxml::xml_document<> doc;
     char doc_text[] = "<pfx:single-element/>";

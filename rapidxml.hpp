@@ -166,9 +166,9 @@ namespace rapidxml
 namespace rapidxml
 {
     // Forward declarations
-    template<class Ch> class xml_node;
-    template<class Ch> class xml_attribute;
-    template<class Ch> class xml_document;
+    template<typename Ch> class xml_node;
+    template<typename Ch> class xml_attribute;
+    template<typename Ch> class xml_document;
 
     //! Enumeration listing all node types produced by the parser.
     //! Use xml_node::type() function to query node type.
@@ -380,7 +380,7 @@ namespace rapidxml
     //! to obtain best wasted memory to performance compromise.
     //! To do it, define their values before rapidxml.hpp file is included.
     //! \param Ch Character type of created nodes.
-    template<class Ch = char>
+    template<typename Ch = char>
     class memory_pool
     {
 
@@ -417,10 +417,21 @@ namespace rapidxml
         //! \param value_size Size of value to assign, or 0 to automatically calculate size from value string.
         //! \return Pointer to allocated node. This pointer will never be NULL.
         template<typename... Args>
-        xml_node<Ch> * allocate_node(Args... args) {
+        xml_node<Ch> * allocate_node_low(Args... args) {
             void *memory = allocate_aligned(sizeof(xml_node<Ch>));
             auto *node = new(memory) xml_node<Ch>(args...);
             return node;
+        }
+        xml_node<Ch> * allocate_node(node_type type, view_type const & name, view_type const & value) {
+            auto * node = this->allocate_node_low(type, name);
+            node->value(value);
+            return node;
+        }
+        xml_node<Ch> * allocate_node(node_type type, view_type const & name) {
+            return this->allocate_node_low(type, name);
+        }
+        xml_node<Ch> * allocate_node(node_type type) {
+            return this->allocate_node_low(type);
         }
 
         //! Allocates a new attribute from the pool, and optionally assigns name and value to it.
@@ -433,10 +444,21 @@ namespace rapidxml
         //! \param value_size Size of value to assign, or 0 to automatically calculate size from value string.
         //! \return Pointer to allocated attribute. This pointer will never be NULL.
         template<typename... Args>
-        xml_attribute<Ch> *allocate_attribute(Args... args) {
+        xml_attribute<Ch> *allocate_attribute_low(Args... args) {
             void *memory = allocate_aligned(sizeof(xml_attribute<Ch>));
             auto *attribute = new(memory) xml_attribute<Ch>(args...);
             return attribute;
+        }
+        xml_attribute<Ch> * allocate_attribute(view_type const & name, view_type const & value) {
+            auto * attr = this->allocate_attribute_low(name);
+            attr->value(value);
+            return attr;
+        }
+        xml_attribute<Ch> * allocate_attribute(view_type const & name) {
+            return this->allocate_attribute_low(name);
+        }
+        xml_attribute<Ch> * allocate_attribute() {
+            return this->allocate_attribute_low();
         }
 
         //! Allocates a char array of given size from the pool, and optionally copies a given string to it.
@@ -449,7 +471,7 @@ namespace rapidxml
         template<typename Sch>
         view_type allocate_string(const Sch *source, std::size_t size)
         {
-            if (size == 0) size = 1; // Allocate something, at least.
+            if (size == 0) return {}; // No need to allocate.
             Ch *result = static_cast<Ch *>(allocate_aligned(size * sizeof(Ch)));
             if (source)
                 for (std::size_t i = 0; i < size; ++i)
@@ -499,27 +521,22 @@ namespace rapidxml
         //! \param source Node to clone.
         //! \param result Node to put results in, or 0 to automatically allocate result node
         //! \return Pointer to cloned node. This pointer will never be NULL.
-        xml_node<Ch> *clone_node(const xml_node<Ch> *source, xml_node<Ch> *result = 0)
+        optional_ptr<xml_node<Ch>> clone_node(const optional_ptr<xml_node<Ch>> source, bool strings=false)
         {
             // Prepare result node
-            if (result)
-            {
-                result->remove_all_attributes();
-                result->remove_all_nodes();
-                result->type(source->type());
-            }
-            else
-                result = allocate_node(source->type());
+            auto result = allocate_node(source->type());
+            auto s = [this, strings](view_type const & sv) { return strings ? this->allocate_string(sv) : sv; };
 
             // Clone name and value
-            result->name(source->name());
-            result->value(source->value());
+            result->name(s(source->name()));
+            result->value(s(source->value()));
+            result->prefix(s(source->prefix()));
 
             // Clone child nodes and attributes
-            for (xml_node<Ch> *child = source->first_node(); child; child = child->next_sibling())
-                result->append_node(clone_node(child));
-            for (xml_attribute<Ch> *attr = source->first_attribute(); attr; attr = attr->next_attribute())
-                result->append_attribute(allocate_attribute(attr->name(), attr->value()));
+            for (auto child = source->first_node(); child; child = child->next_sibling())
+                result->append_node(clone_node(child, strings));
+            for (auto attr = source->first_attribute(); attr; attr = attr->next_attribute())
+                result->append_attribute(allocate_attribute(s(attr->name()), s(attr->value())));
 
             return result;
         }
@@ -652,7 +669,7 @@ namespace rapidxml
     //! Base class for xml_node and xml_attribute implementing common functions:
     //! name(), name_size(), value(), value_size() and parent().
     //! \param Ch Character type to use
-    template<class Ch = char>
+    template<typename Ch = char>
     class xml_base
     {
 
@@ -754,7 +771,7 @@ namespace rapidxml
     //! Note that after parse, both name and value of attribute will point to interior of source text used for parsing.
     //! Thus, this text must persist in memory for the lifetime of attribute.
     //! \param Ch Character type to use.
-    template<class Ch = char>
+    template<typename Ch = char>
     class xml_attribute: public xml_base<Ch>
     {
 
@@ -762,6 +779,7 @@ namespace rapidxml
 
     public:
         using view_type = std::basic_string_view<Ch>;
+        using ptr = optional_ptr<xml_attribute<Ch>>;
 
         ///////////////////////////////////////////////////////////////////////////
         // Construction & destruction
@@ -887,12 +905,13 @@ namespace rapidxml
     //! Note that after parse, both name and value of node, if any, will point interior of source text used for parsing.
     //! Thus, this text must persist in the memory for the lifetime of node.
     //! \param Ch Character type to use.
-    template<class Ch = char>
+    template<typename Ch = char>
     class xml_node: public xml_base<Ch>
     {
 
     public:
         using view_type = std::basic_string_view<Ch>;
+        using ptr = optional_ptr<xml_node<Ch>>;
 
         ///////////////////////////////////////////////////////////////////////////
         // Construction & destruction
@@ -1006,9 +1025,13 @@ namespace rapidxml
         optional_ptr<xml_document<Ch>> document() const
         {
             auto *node = this;
-            while (node->parent())
-                node = node->parent().get();
-            return node->type() == node_document ? static_cast<xml_document<Ch> *>(const_cast<xml_node<Ch> *>(node)) : nullptr;
+            while (node) {
+                if (node->type() == node_document) {
+                    return static_cast<xml_document<Ch> *>(const_cast<xml_node<Ch> *>(node));
+                }
+                node = node->parent().ptr_unsafe();
+            }
+            return nullptr;
         }
 
         //! Gets first child node, optionally matching node name.
@@ -1470,7 +1493,7 @@ namespace rapidxml
 
         //! Removes specified attribute from node.
         //! \param where Pointer to attribute to be removed.
-        void remove_attribute(xml_attribute<Ch> *where)
+        void remove_attribute(optional_ptr<xml_attribute<Ch>> where)
         {
             assert(first_attribute() && where->parent() == this);
             if (where == m_first_attribute)
@@ -1573,6 +1596,7 @@ namespace rapidxml
 
     public:
         using view_type = std::basic_string_view<Ch>;
+        using ptr = optional_ptr<xml_document<Ch>>;
 
         //! Constructs empty XML document
         xml_document()
@@ -2343,7 +2367,6 @@ namespace rapidxml
             if (text == prefix)
                 RAPIDXML_PARSE_ERROR("expected element name or prefix", text);
             if (*text == Ch(':')) {
-                view_type * sv = new view_type(prefix, text);
                 element->prefix({prefix, text});
                 ++text;
                 Chp name = text;

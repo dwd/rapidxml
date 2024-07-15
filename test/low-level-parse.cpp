@@ -5,6 +5,13 @@
 #include <gtest/gtest.h>
 #include "rapidxml.hpp"
 
+TEST(Constants, Empty) {
+    rapidxml::xml_document<> doc;
+    auto empty = doc.nullstr();
+    EXPECT_EQ(empty, "");
+    EXPECT_EQ(empty.size(), 0);
+}
+
 TEST(Predicates, Skip) {
     std::string test_data{"<simple/>"};
     auto start = test_data.c_str();

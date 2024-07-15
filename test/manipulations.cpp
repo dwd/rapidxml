@@ -48,6 +48,12 @@ TEST(Create, Node2) {
     );
 }
 
+static std::string s = "tuna";
+
+std::string const & fn() {
+    return s;
+}
+
 TEST(Create, NodeAttr) {
     rapidxml::xml_document<> doc;
     auto node = doc.allocate_node(rapidxml::node_element, "fish", "cakes");
@@ -60,7 +66,14 @@ TEST(Create, NodeAttr) {
         "<fish id=\"haddock\">cakes</fish>\n"
     );
 
-    auto tuna = doc.allocate_attribute("not-id", "tuna");
+    const std::string & s2 = fn();
+    const rapidxml::xml_attribute<>::view_type & sv{s2};
+
+    auto tuna = doc.allocate_attribute("not-id", fn());
+    // These check that the same buffer is being used throughout, instead of creating temporaries.
+    EXPECT_EQ(s.data(), s2.data());
+    EXPECT_EQ(s.data(), sv.data());
+    EXPECT_EQ(s.data(), tuna->value().data());
     node->append_attribute(tuna);
     EXPECT_EQ(haddock->next_attribute(), tuna);
     EXPECT_EQ(tuna->parent(), node);
