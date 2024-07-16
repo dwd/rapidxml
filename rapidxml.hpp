@@ -938,6 +938,17 @@ namespace rapidxml
             return m_value.value();
         }
 
+        void dirty() {
+            m_clean = false;
+            dirty_parent();
+        }
+        void dirty_parent() {
+            if (this->m_parent) this->m_parent->dirty();
+        }
+        bool clean() const {
+            return m_clean;
+        }
+
         void value(view_type const & v) {
             m_value = v;
         }
@@ -954,6 +965,7 @@ namespace rapidxml
 
         void prefix(view_type const & prefix) {
             m_prefix = prefix;
+            dirty_parent();
         }
 
         view_type const & prefix() const {
@@ -962,6 +974,8 @@ namespace rapidxml
 
         void contents(view_type const & contents) {
             m_contents = contents;
+            // Reset to clean here.
+            m_clean = true;
         }
         view_type const & contents() const
         {
@@ -1157,6 +1171,7 @@ namespace rapidxml
         //! \param type Type of node to set.
         void type(node_type type) {
             m_type = type;
+            dirty();
         }
 
         ///////////////////////////////////////////////////////////////////////////
@@ -1215,6 +1230,7 @@ namespace rapidxml
         optional_ptr<xml_node<Ch>> prepend_node(xml_node<Ch> *child)
         {
             assert(child && !child->parent() && child->type() != node_document);
+            dirty();
             if (first_node())
             {
                 child->m_next_sibling = m_first_node;
@@ -1255,6 +1271,7 @@ namespace rapidxml
         optional_ptr<xml_node<Ch>> append_node(xml_node<Ch> *child)
         {
             assert(child && !child->parent() && child->type() != node_document);
+            dirty();
             if (first_node())
             {
                 child->m_prev_sibling = m_last_node;
@@ -1297,6 +1314,7 @@ namespace rapidxml
         {
             assert(!where || where->parent() == this);
             assert(child && !child->parent() && child->type() != node_document);
+            dirty();
             if (where == m_first_node)
                 prepend_node(child);
             else if (where == 0)
@@ -1336,6 +1354,7 @@ namespace rapidxml
         void remove_first_node()
         {
             assert(first_node());
+            dirty();
             xml_node<Ch> *child = m_first_node;
             m_first_node = child->m_next_sibling;
             if (child->m_next_sibling)
@@ -1351,6 +1370,7 @@ namespace rapidxml
         void remove_last_node()
         {
             assert(first_node());
+            dirty();
             xml_node<Ch> *child = m_last_node;
             if (child->m_prev_sibling)
             {
@@ -1368,6 +1388,7 @@ namespace rapidxml
         {
             assert(where->parent() == this);
             assert(first_node());
+            dirty();
             if (where == m_first_node)
                 remove_first_node();
             else if (where == m_last_node)
@@ -1383,6 +1404,8 @@ namespace rapidxml
         //! Removes all child nodes (but not attributes).
         void remove_all_nodes()
         {
+            if (!m_first_node) return;
+            dirty();
             for (xml_node<Ch> *node = m_first_node; node; node = node->m_next_sibling)
                 node->m_parent = nullptr;
             m_first_node = nullptr;
@@ -1394,6 +1417,7 @@ namespace rapidxml
         void prepend_attribute(xml_attribute<Ch> *attribute)
         {
             assert(attribute && !attribute->parent());
+            dirty_parent();
             if (first_attribute())
             {
                 attribute->m_next_attribute = m_first_attribute;
@@ -1414,6 +1438,7 @@ namespace rapidxml
         void append_attribute(xml_attribute<Ch> *attribute)
         {
             assert(attribute && !attribute->parent());
+            dirty_parent();
             if (first_attribute())
             {
                 attribute->m_prev_attribute = m_last_attribute;
@@ -1437,6 +1462,7 @@ namespace rapidxml
         {
             assert(!where || where->parent() == this);
             assert(attribute && !attribute->parent());
+            dirty_parent();
             if (where == m_first_attribute)
                 prepend_attribute(attribute);
             else if (where == 0)
@@ -1457,6 +1483,7 @@ namespace rapidxml
         void remove_first_attribute()
         {
             assert(first_attribute());
+            dirty_parent();
             xml_attribute<Ch> *attribute = m_first_attribute;
             if (attribute->m_next_attribute)
             {
@@ -1474,6 +1501,7 @@ namespace rapidxml
         void remove_last_attribute()
         {
             assert(first_attribute());
+            dirty_parent();
             xml_attribute<Ch> *attribute = m_last_attribute;
             if (attribute->m_prev_attribute)
             {
@@ -1490,6 +1518,7 @@ namespace rapidxml
         void remove_attribute(optional_ptr<xml_attribute<Ch>> where)
         {
             assert(first_attribute() && where->parent() == this);
+            dirty_parent();
             if (where == m_first_attribute)
                 remove_first_attribute();
             else if (where == m_last_attribute)
@@ -1505,6 +1534,8 @@ namespace rapidxml
         //! Removes all attributes of node.
         void remove_all_attributes()
         {
+            if (!m_first_attribute) return;
+            dirty_parent();
             for (xml_attribute<Ch> *attribute = m_first_attribute; attribute; attribute = attribute->m_next_attribute)
                 attribute->m_parent = nullptr;
             m_first_attribute = nullptr;
@@ -1566,6 +1597,7 @@ namespace rapidxml
         xml_node<Ch> *m_prev_sibling = nullptr;           // Pointer to previous sibling of node, or 0 if none; this value is only valid if m_parent is non-zero
         xml_node<Ch> *m_next_sibling = nullptr;           // Pointer to next sibling of node, or 0 if none; this value is only valid if m_parent is non-zero
         view_type m_contents;                   // Pointer to original contents in buffer.
+        bool m_clean = false; // Unchanged since parsing (ie, contents are good).
         mutable std::optional<view_type> m_value;
     };
 
