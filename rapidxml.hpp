@@ -960,14 +960,6 @@ namespace rapidxml
             return m_prefix;
         }
 
-        void qname(view_type const & qname) {
-            m_qname = qname;
-        }
-
-        view_type const & qname() const {
-            return m_qname;
-        }
-
         void contents(view_type const & contents) {
             m_contents = contents;
         }
@@ -1569,7 +1561,6 @@ namespace rapidxml
         // 3. prev_sibling and next_sibling are valid only if node has a parent, otherwise they contain garbage
 
         view_type m_prefix;
-        view_type m_qname;
         mutable std::optional<view_type> m_xmlns; // Cache
         node_type m_type;                       // Type of node; always valid
         xml_node<Ch> *m_first_node = nullptr;             // Pointer to first child node, or 0 if none; always valid
@@ -2365,6 +2356,7 @@ namespace rapidxml
 
             // Extract element name
             Chp prefix = text;
+            view_type qname;
             skip<element_name_pred, Flags>(text);
             if (text == prefix)
                 RAPIDXML_PARSE_ERROR("expected element name or prefix", text);
@@ -2376,11 +2368,10 @@ namespace rapidxml
                 if (text == name)
                     RAPIDXML_PARSE_ERROR("expected element local name", text);
                 element->name({name, text});
-                element->qname({prefix, text});
             } else {
                 element->name({prefix, text});
-                element->qname(element->name());
             }
+            qname = {prefix, text};
 
             // Skip whitespace between element name and attributes or >
             skip<whitespace_pred, Flags>(text);
@@ -2394,7 +2385,7 @@ namespace rapidxml
                 Chp contents = ++text;
                 Chp contents_end = contents;
                 if (!(Flags & parse_open_only))
-                    contents_end = parse_node_contents<Flags>(text, element);
+                    contents_end = parse_node_contents<Flags>(text, element, qname);
                 if (contents != contents_end) element->contents({contents, contents_end});
             }
             else if (*text == Ch('/'))
@@ -2502,7 +2493,7 @@ namespace rapidxml
         // Parse contents of the node - children, data etc.
         // Return end pointer.
         template<int Flags, typename Chp>
-        Chp parse_node_contents(Chp &text, xml_node<Ch> *node)
+        Chp parse_node_contents(Chp &text, xml_node<Ch> *node, view_type const & qname)
         {
             Chp retval;
             // For all children and text
@@ -2535,7 +2526,7 @@ namespace rapidxml
                             // Skip and validate closing tag name
                             Chp closing_name = text;
                             skip<node_name_pred, Flags>(text);
-                            if (node->qname() != view_type{closing_name, text})
+                            if (qname != view_type{closing_name, text})
                                 RAPIDXML_PARSE_ERROR("invalid closing tag name", text);
                         }
                         else
