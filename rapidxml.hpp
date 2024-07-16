@@ -1512,8 +1512,6 @@ namespace rapidxml
 
         void validate() const
         {
-//            if (this->xmlns().empty())
-//                throw element_xmlns_unbound("Element XMLNS unbound");
             this->xmlns();
             for (auto child = this->first_node();
                  child;
@@ -1523,8 +1521,6 @@ namespace rapidxml
             for (auto attribute = first_attribute();
                  attribute;
                  attribute = attribute->m_next_attribute) {
-//                if (attribute->xmlns().empty())
-//                    throw attr_xmlns_unbound("Attribute XMLNS unbound");
                 attribute->xmlns();
                 for (auto otherattr = first_attribute();
                      otherattr != attribute;
@@ -2378,6 +2374,8 @@ namespace rapidxml
 
             // Parse attributes, if any
             parse_node_attributes<Flags>(text, element);
+            // Once we have all the attributes, we should be able to fully validate:
+            if (Flags & parse_validate_xmlns) this->validate();
 
             // Determine ending type
             if (*text == Ch('>'))
