@@ -7,6 +7,8 @@
 
 #include <gtest/gtest.h>
 #include <numeric>
+#include "rapidxml_print.hpp"
+#include "rapidxml_iterators.hpp"
 
 TEST(Perf, Parse) {
     using std::chrono::high_resolution_clock;
@@ -54,3 +56,58 @@ TEST(Perf, Parse2) {
     }
     std::cout << "Execution time: " << total << " us\n";
 }
+
+TEST(Perf, PrintClean) {
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration_cast;
+    using std::chrono::microseconds;
+
+    rapidxml::file source("../REC-xml-20081126.xml");
+
+    std::vector<unsigned long long> timings;
+    rapidxml::xml_document<> doc;
+    doc.parse<rapidxml::parse_full>(source.data());
+    for (auto i = 0; i != 1000; ++i) {
+        std::string output;
+        auto t1 = high_resolution_clock::now();
+        rapidxml::print(std::back_inserter(output), doc);
+        auto t2 = high_resolution_clock::now();
+        auto ms_int = duration_cast<microseconds>(t2 - t1);
+        timings.push_back(ms_int.count());
+    }
+    auto total = 0ULL;
+    for (auto t : timings) {
+        total += t / 1000;
+    }
+    std::cout << "Execution time: " << total << " us\n";
+}
+
+TEST(Perf, PrintDirty) {
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration_cast;
+    using std::chrono::microseconds;
+
+    rapidxml::file source("../REC-xml-20081126.xml");
+
+    std::vector<unsigned long long> timings;
+    rapidxml::xml_document<> doc_o;
+    doc_o.parse<rapidxml::parse_full>(source.data());
+    rapidxml::xml_document<> doc;
+    for (auto & child : rapidxml::children(doc_o)) {
+        doc.append_node(doc.clone_node(&child, true));
+    }
+    for (auto i = 0; i != 1000; ++i) {
+        std::string output;
+        auto t1 = high_resolution_clock::now();
+        rapidxml::print(std::back_inserter(output), doc);
+        auto t2 = high_resolution_clock::now();
+        auto ms_int = duration_cast<microseconds>(t2 - t1);
+        timings.push_back(ms_int.count());
+    }
+    auto total = 0ULL;
+    for (auto t : timings) {
+        total += t / 1000;
+    }
+    std::cout << "Execution time: " << total << " us\n";
+}
+

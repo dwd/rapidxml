@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include "rapidxml.hpp"
 #include "rapidxml_print.hpp"
+#include "rapidxml_iterators.hpp"
 
 namespace {
     auto print(rapidxml::xml_document<> & doc) {
@@ -71,6 +72,11 @@ TEST(RoundTrip, SimpleApos) {
     doc.parse<rapidxml::parse_full>(buffer.data());
     auto output = print(doc);
     // Have we parsed correctly?
+    rapidxml::xml_document<> doc2;
+    for (auto & child : rapidxml::children(doc)) {
+        doc2.append_node(doc2.clone_node(&child, true));
+    }
+    EXPECT_EQ(input, print(doc2));
     EXPECT_EQ(input, output);
     // Have we mutated the underlying buffer?
     EXPECT_EQ(input, std::string(buffer.data(), buffer.size() - 1));
@@ -85,6 +91,11 @@ TEST(RoundTrip, SimpleApos2) {
     auto output = print(doc);
     EXPECT_EQ(doc.first_node()->first_attribute()->value(), "'");
     // Have we parsed correctly?
+    rapidxml::xml_document<> doc2;
+    for (auto & child : rapidxml::children(doc)) {
+        doc2.append_node(doc2.clone_node(&child, true));
+    }
+    EXPECT_EQ(expected, print(doc2));
     EXPECT_EQ(expected, output);
     // Have we mutated the underlying buffer?
     EXPECT_EQ(input, std::string(buffer.data(), buffer.size() - 1));
@@ -100,6 +111,11 @@ TEST(RoundTrip, SimpleLtBody) {
     EXPECT_EQ(doc.first_node()->value(), "<");
     EXPECT_EQ(doc.first_node()->first_attribute()->value(), "'");
     // Have we parsed correctly?
+    rapidxml::xml_document<> doc2;
+    for (auto & child : rapidxml::children(doc)) {
+        doc2.append_node(doc2.clone_node(&child, true));
+    }
+    EXPECT_EQ(expected, print(doc2));
     EXPECT_EQ(expected, output);
     // Have we mutated the underlying buffer?
     EXPECT_EQ(input, std::string(buffer.data(), buffer.size() - 1));
@@ -112,6 +128,11 @@ TEST(RoundTrip, Everything) {
     rapidxml::xml_document<> doc;
     doc.parse<rapidxml::parse_full>(buffer.data());
     auto output = print(doc);
+    rapidxml::xml_document<> doc2;
+    for (auto & child : rapidxml::children(doc)) {
+        doc2.append_node(doc2.clone_node(&child, true));
+    }
+    EXPECT_EQ(expected, print(doc2));
     // Have we parsed correctly?
     EXPECT_EQ(expected, output);
     // Have we mutated the underlying buffer?
