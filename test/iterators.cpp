@@ -3,15 +3,17 @@
 //
 
 #include <gtest/gtest.h>
+#include <list>
+#include <algorithm>
+#include <ranges>
 #include "rapidxml.hpp"
-#include "rapidxml_iterators.hpp"
 
 TEST(Iterators, Nodes) {
     std::string xml = "<children><one/><two/><three/></children>";
     rapidxml::xml_document<> doc;
     doc.parse<rapidxml::parse_full>(xml);
     int i = 0;
-    for (auto & child : rapidxml::children(doc.first_node())) {
+    for (auto & child : doc.first_node()->children()) {
         ++i;
         switch(i) {
             case 1:
@@ -33,7 +35,7 @@ TEST(Iterators, Attributes) {
     rapidxml::xml_document<> doc;
     doc.parse<rapidxml::parse_full>(xml);
     int i = 0;
-    for (auto & child : rapidxml::attributes(doc.first_node())) {
+    for (auto & child : doc.first_node()->attributes()) {
         ++i;
         switch(i) {
             case 1:
@@ -48,4 +50,34 @@ TEST(Iterators, Attributes) {
         }
     }
     EXPECT_EQ(i, 3);
+}
+
+TEST(Predicates, Nodes) {
+    std::string xml = "<children><one/><two/><three/></children>";
+    rapidxml::xml_document<> doc;
+    doc.parse<rapidxml::parse_full>(xml);
+    auto r = doc.first_node()->children();
+    for (auto const & child : r | std::ranges::views::filter([](auto const & n) { return n.name() == "two"; })) {
+        EXPECT_EQ(child.name(), "two");
+    }
+    auto c = std::ranges::count_if(r, [](auto const & n) { return n.name() == "two"; });
+    EXPECT_EQ(c, 1);
+    auto match = std::ranges::find_if(r, [](auto const & n) { return n.name() == "two"; });
+    EXPECT_EQ(match->name(), "two");
+}
+
+TEST(Predicates, Attributes) {
+    std::string xml = R"(<children one="1" two="2" three="3"/>)";
+    rapidxml::xml_document<> doc;
+    doc.parse<rapidxml::parse_full>(xml);
+    auto r = doc.first_node()->attributes();
+    for (auto const & child : r | std::ranges::views::filter([](auto const & n) { return n.name() == "two"; })) {
+        EXPECT_EQ(child.name(), "two");
+    }
+    auto c = std::ranges::count_if(r, [](auto const & n) { return n.name() == "two"; });
+    EXPECT_EQ(c, 1);
+    auto match = std::ranges::find_if(r, [](auto const & n) { return n.name() == "two"; });
+    EXPECT_EQ(match->name(), "two");
+    auto match2 = std::ranges::find_if(doc.first_node()->attributes(), [](auto const & n) { return n.name() == "two"; });
+    EXPECT_EQ(match2->name(), "two");
 }

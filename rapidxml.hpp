@@ -169,6 +169,8 @@ namespace rapidxml
     template<typename Ch> class xml_node;
     template<typename Ch> class xml_attribute;
     template<typename Ch> class xml_document;
+    template<typename Ch> class children;
+    template<typename Ch> class attributes;
 
     //! Enumeration listing all node types produced by the parser.
     //! Use xml_node::type() function to query node type.
@@ -1038,6 +1040,14 @@ namespace rapidxml
                 node = node->parent().ptr_unsafe();
             }
             return nullptr;
+        }
+
+        rapidxml::children<Ch> children() const {
+            return rapidxml::children<Ch>{*this};
+        }
+
+        rapidxml::attributes<Ch> attributes() const {
+            return rapidxml::attributes<Ch>{*this};
         }
 
         //! Gets first child node, optionally matching node name.
@@ -2946,6 +2956,9 @@ namespace rapidxml
     //! \endcond
 
 }
+
+// Also include this now.
+#include <rapidxml_iterators.hpp>
 
 // Undefine internal macros
 #undef RAPIDXML_PARSE_ERROR
