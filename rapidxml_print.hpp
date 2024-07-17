@@ -227,7 +227,8 @@ namespace rapidxml
                 *out = Ch('>'), ++out;
 
                 // If the node is clean, just output the contents and move on.
-                if (node->clean()) {
+                // Can only do this if we're not indenting, otherwise pretty-print won't work.
+                if (node->clean() && (flags & print_no_indenting)) {
                     out = copy_chars(node->contents(), out);
                 } else {
 

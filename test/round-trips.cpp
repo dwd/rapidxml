@@ -138,3 +138,25 @@ TEST(RoundTrip, Everything) {
     // Have we mutated the underlying buffer?
     EXPECT_EQ(input, std::string(buffer.data(), buffer.size() - 1));
 }
+
+TEST(RoundTrip, EverythingStream) {
+    const char input[] = "<?xml charset='utf-8' ?><!DOCTYPE ><simple arg=\"&apos;\"><!-- Comment here --></simple>";
+    const char expected[] = "<?xml charset=\"utf-8\"?>\n<!DOCTYPE >\n<simple arg=\"'\">\n\t<!-- Comment here -->\n</simple>\n\n";
+    std::vector<char> buffer{input, input + sizeof(input) - 1};
+    rapidxml::xml_document<> doc;
+    doc.parse<rapidxml::parse_full>(buffer);
+    std::stringstream ss1;
+    ss1 << doc;
+    auto output = ss1.str();
+    rapidxml::xml_document<> doc2;
+    for (auto & child : doc.children()) {
+        doc2.append_noe(doc2.clone_node(&child, true));
+    }
+    std::stringstream ss2;
+    ss2 << doc2;
+    EXPECT_EQ(expected, ss2.str());
+    // Have we parsed correctly?
+    EXPECT_EQ(expected, output);
+    // Have we mutated the underlying buffer?
+    EXPECT_EQ(input, std::string(buffer.data(), buffer.size()));
+}
