@@ -116,6 +116,10 @@ namespace rapidxml {
         difference_type operator - (buffer_ptr const & other) const {
             return it - other.it;
         }
+
+        pointer ptr() {
+            return &*it;
+        }
     };
 
     template<typename T>

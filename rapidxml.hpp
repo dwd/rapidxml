@@ -1646,21 +1646,20 @@ namespace rapidxml
         //! Document can be parsed into multiple times.
         //! Each new call to parse removes previous nodes and attributes (if any), but does not clear memory pool.
         //! \param text XML data to parse; pointer is non-const to denote fact that this data may be modified by the parser.
-        template<int Flags, typename Chp>
-        requires (std::is_pointer_v<Chp> && std::is_same_v<Ch, std::remove_pointer_t<Chp>>)
-        Chp parse(Chp text, xml_document<Ch> * parent = nullptr) {
+        template<int Flags>
+        auto parse(const Ch * text, xml_document<Ch> * parent = nullptr) {
             return this->parse_low<Flags>(text, parent);
         }
 
         template<int Flags>
-        void parse(std::basic_string<Ch> const & str, xml_document<Ch> * parent = nullptr) {
-            this->parse_low<Flags>(str.c_str(), parent);
+        auto parse(std::basic_string<Ch> const & str, xml_document<Ch> * parent = nullptr) {
+            return this->parse_low<Flags>(str.c_str(), parent);
         }
 
         template<int Flags, typename C>
         requires std::is_same_v<Ch, typename C::value_type>
-        void parse(C const & container, xml_document<Ch> * parent = nullptr) {
-            this->parse_low<Flags>(buffer_ptr<C>(container), parent);
+        auto parse(C const & container, xml_document<Ch> * parent = nullptr) {
+            return this->parse_low<Flags>(buffer_ptr<C>(container), parent);
         }
 
         template<int Flags, typename T>
@@ -1700,11 +1699,6 @@ namespace rapidxml
             }
             if (!this->first_node()) RAPIDXML_PARSE_ERROR("no root element", text);
             return text;
-        }
-        template<int Flags>
-        Ch * parse(Ch * text, xml_document<Ch> & parent)
-        {
-            return parse<Flags>(text, &parent);
         }
 
         //! Clears the document by deleting all nodes and clearing the memory pool.

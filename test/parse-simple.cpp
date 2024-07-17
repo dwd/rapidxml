@@ -192,18 +192,22 @@ TEST(ParseOptions, OpenOnly) {
 TEST(ParseOptions, ParseOne) {
     rapidxml::xml_document<> doc;
     char doc_text[] = "<pfx:single xmlns='jabber:client' xmlns:pfx='urn:xmpp:example'><pfx:features><feature1/><feature2/></pfx:features><message to='me@mydomain.com' from='you@yourdomcina.com' xml:lang='en'><body>Hello!</body></message>";
-    char * text = doc.parse<rapidxml::parse_open_only>(doc_text);
+    const char * text = doc.parse<rapidxml::parse_open_only>(doc_text);
 
-    auto node = doc.first_node();
-    EXPECT_EQ("single", node->name());
-    EXPECT_EQ("pfx", node->prefix());
-    EXPECT_EQ("urn:xmpp:example", node->xmlns());
-    EXPECT_STREQ("<pfx:features><feature1/><feature2/></pfx:features><message to='me@mydomain.com' from='you@yourdomcina.com' xml:lang='en'><body>Hello!</body></message>", text);
+    {
+        auto node = doc.first_node();
+        EXPECT_EQ("single", node->name());
+        EXPECT_EQ("pfx", node->prefix());
+        EXPECT_EQ("urn:xmpp:example", node->xmlns());
+        EXPECT_STREQ(
+                "<pfx:features><feature1/><feature2/></pfx:features><message to='me@mydomain.com' from='you@yourdomcina.com' xml:lang='en'><body>Hello!</body></message>",
+                text);
+    }
     doc.validate();
     unsigned counter = 0;
     while (*text) {
         rapidxml::xml_document<> subdoc;
-        text = subdoc.parse<rapidxml::parse_parse_one>(text, doc);
+        text = subdoc.parse<rapidxml::parse_parse_one>(text, &doc);
         auto node = subdoc.first_node();
         ASSERT_NE(nullptr, node);
         switch(++counter) {
@@ -225,18 +229,22 @@ TEST(ParseOptions, ParseOne) {
 TEST(ParseOptions, OpenOnlyFastest) {
     rapidxml::xml_document<> doc;
     char doc_text[] = "<pfx:single xmlns='jabber:client' xmlns:pfx='urn:xmpp:example'><pfx:features><feature1/><feature2/></pfx:features><message to='me@mydomain.com' from='you@yourdomcina.com' xml:lang='en'><body>Hello!</body></message>";
-    char * text = doc.parse<rapidxml::parse_open_only|rapidxml::parse_fastest>(doc_text);
+    const char * text = doc.parse<rapidxml::parse_open_only|rapidxml::parse_fastest>(doc_text);
 
-    auto node = doc.first_node();
-    EXPECT_EQ("single", node->name());
-    EXPECT_EQ("pfx", node->prefix());
-    EXPECT_EQ("urn:xmpp:example", node->xmlns());
-    EXPECT_STREQ("<pfx:features><feature1/><feature2/></pfx:features><message to='me@mydomain.com' from='you@yourdomcina.com' xml:lang='en'><body>Hello!</body></message>", text);
+    {
+        auto node = doc.first_node();
+        EXPECT_EQ("single", node->name());
+        EXPECT_EQ("pfx", node->prefix());
+        EXPECT_EQ("urn:xmpp:example", node->xmlns());
+        EXPECT_STREQ(
+                "<pfx:features><feature1/><feature2/></pfx:features><message to='me@mydomain.com' from='you@yourdomcina.com' xml:lang='en'><body>Hello!</body></message>",
+                text);
+    }
     doc.validate();
     unsigned counter = 0;
     while (*text) {
         rapidxml::xml_document<> subdoc;
-        text = subdoc.parse<rapidxml::parse_parse_one>(text, doc);
+        text = subdoc.parse<rapidxml::parse_parse_one>(text, &doc);
         auto node = subdoc.first_node();
         ASSERT_NE(nullptr, node);
         switch(++counter) {
