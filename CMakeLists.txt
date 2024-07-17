@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(rapidxml)
 
 # GoogleTest requires at least C++14
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
@@ -12,6 +12,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+file(DOWNLOAD https://www.w3.org/TR/xml/REC-xml-20081126.xml ${CMAKE_CURRENT_BINARY_DIR}/REC-xml-20081126.xml)
+
 enable_testing()
 add_executable(rapidxml-test
         test/parse-simple.cpp
@@ -20,6 +22,11 @@ add_executable(rapidxml-test
         rapidxml_utils.hpp
         rapidxml.hpp
         test/manipulations.cpp
+        test/round-trips.cpp
+        test/low-level-parse.cpp
+        test/perf.cpp
+        rapidxml_wrappers.hpp
+        test/iterators.cpp
 )
 target_link_libraries(rapidxml-test
         GTest::gtest_main
@@ -28,5 +35,6 @@ target_include_directories(rapidxml-test
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
+target_compile_definitions(rapidxml-test PRIVATE RAPIDXML_TESTING=1)
 include(GoogleTest)
 gtest_discover_tests(rapidxml-test)

@@ -12,8 +12,24 @@ TEST(Parser, SingleElement) {
 
     auto node = doc.first_node();
     EXPECT_NE(nullptr, node);
-    EXPECT_NE(nullptr, node->name());
-    EXPECT_STREQ("single-element", node->name());
+    EXPECT_FALSE(node->name().empty());
+    EXPECT_EQ("single-element", node->name());
+    doc.validate();
+}
+
+TEST(Parser, DefaultElementNS) {
+    char doc_text[] = "<element xmlns='this'><child/></element>";
+    rapidxml::xml_document<> doc;
+    doc.parse<rapidxml::parse_fastest | rapidxml::parse_parse_one>(doc_text);
+
+    auto node = doc.first_node();
+    EXPECT_NE(nullptr, node);
+    EXPECT_FALSE(node->name().empty());
+    EXPECT_EQ("element", node->name());
+    EXPECT_EQ(node->xmlns(), "this");
+    auto child = node->first_node();
+    EXPECT_EQ(child->name(), "child");
+    EXPECT_EQ(child->xmlns(), "this");
     doc.validate();
 }
 
@@ -23,7 +39,7 @@ TEST(Parser, UnboundPrefix) {
     doc.parse<0>(doc_text);
 
     auto node = doc.first_node();
-    EXPECT_STREQ("single-element", node->name());
+    EXPECT_EQ("single-element", node->name());
     EXPECT_THROW(
         doc.validate(),
         rapidxml::element_xmlns_unbound
@@ -36,7 +52,7 @@ TEST(Parser, DuplicateAttribute) {
     doc.parse<0>(doc_text);
 
     auto node = doc.first_node();
-    assert(std::string("single-element") == node->name());
+    EXPECT_EQ("single-element", node->name());
     EXPECT_THROW(
         doc.validate(),
         rapidxml::duplicate_attribute
@@ -49,13 +65,16 @@ TEST(Parser, UnboundAttrPrefix) {
     doc.parse<0>(doc_text);
 
     auto node = doc.first_node();
-    assert(std::string("single-element") == node->name());
+    EXPECT_EQ("single-element", node->name());
     auto attr = node->first_attribute();
-    assert(attr->xmlns() == 0);
     EXPECT_THROW(
         doc.validate(),
         rapidxml::attr_xmlns_unbound
         );
+    EXPECT_THROW(
+        attr->xmlns(),
+        rapidxml::attr_xmlns_unbound
+    );
 }
 
 
@@ -69,7 +88,7 @@ TEST(Parser, DuplicateAttrPrefix) {
     EXPECT_THROW(
         doc.validate(),
         rapidxml::duplicate_attribute
-        );
+    );
 }
 
 
@@ -79,9 +98,9 @@ TEST(Parser, Xmlns) {
     doc.parse<0>(doc_text);
 
     auto node = doc.first_node();
-    EXPECT_STREQ("single", node->name());
-    EXPECT_STREQ("pfx", node->prefix());
-    EXPECT_STREQ("urn:xmpp:example", node->xmlns());
+    EXPECT_EQ("single", node->name());
+    EXPECT_EQ("pfx", node->prefix());
+    EXPECT_EQ("urn:xmpp:example", node->xmlns());
     doc.validate();
 }
 
@@ -91,40 +110,40 @@ TEST(Parser, ChildXmlns) {
     doc.parse<0>(doc_text);
 
     auto node = doc.first_node();
-    EXPECT_STREQ("single", node->name());
-    auto child = node->first_node(0, "urn:potato");
+    EXPECT_EQ("single", node->name());
+    auto child = node->first_node({}, "urn:potato");
     ASSERT_NE(nullptr, child);
-    EXPECT_STREQ("child", child->name());
-    EXPECT_STREQ("urn:potato", child->xmlns());
+    EXPECT_EQ("child", child->name());
+    EXPECT_EQ("urn:potato", child->xmlns());
     child = node->first_node();
-    EXPECT_STREQ("firstchild", child->name());
-    EXPECT_STREQ("urn:xmpp:example", child->xmlns());
+    EXPECT_EQ("firstchild", child->name());
+    EXPECT_EQ("urn:xmpp:example", child->xmlns());
     child = child->next_sibling();
-    EXPECT_STREQ("child", child->name());
-    EXPECT_STREQ("urn:potato", child->xmlns());
+    EXPECT_EQ("child", child->name());
+    EXPECT_EQ("urn:potato", child->xmlns());
     child = child->next_sibling();
-    EXPECT_STREQ("child", child->name());
-    EXPECT_STREQ("urn:xmpp:example", child->xmlns());
+    EXPECT_EQ("child", child->name());
+    EXPECT_EQ("urn:xmpp:example", child->xmlns());
     child = node->first_node("child");
-    EXPECT_STREQ("child", child->name());
-    EXPECT_STREQ("urn:xmpp:example", child->xmlns());
-    child = node->first_node()->next_sibling(nullptr, "urn:xmpp:example");
-    EXPECT_STREQ("child", child->name());
-    EXPECT_STREQ("urn:xmpp:example", child->xmlns());
+    EXPECT_EQ("child", child->name());
+    EXPECT_EQ("urn:xmpp:example", child->xmlns());
+    child = node->first_node()->next_sibling({}, "urn:xmpp:example");
+    EXPECT_EQ("child", child->name());
+    EXPECT_EQ("urn:xmpp:example", child->xmlns());
     child = node->first_node()->next_sibling("child");
     // This will default to the same namespace as the first child ndoe.
-    EXPECT_STREQ("child", child->name());
-    EXPECT_STREQ("urn:xmpp:example", child->xmlns());
+    EXPECT_EQ("child", child->name());
+    EXPECT_EQ("urn:xmpp:example", child->xmlns());
     auto attr = node->first_attribute();
-    EXPECT_STREQ(attr->xmlns(), "http://www.w3.org/2000/xmlns/");
-    EXPECT_STREQ(attr->local_name(), "pfx");
-    EXPECT_STREQ(attr->name(), "xmlns:pfx");
-    EXPECT_EQ(attr->value_str(), "urn:xmpp:example");
+    EXPECT_EQ(attr->xmlns(), "http://www.w3.org/2000/xmlns/");
+    EXPECT_EQ(attr->local_name(), "pfx");
+    EXPECT_EQ(attr->name(), "xmlns:pfx");
+    EXPECT_EQ(attr->value(), "urn:xmpp:example");
     attr = attr->next_attribute();
-    EXPECT_STREQ(attr->xmlns(), "");
-    EXPECT_STREQ(attr->local_name(), "foo");
-    EXPECT_STREQ(attr->name(), "foo");
-    EXPECT_EQ(attr->value_str(), "bar");
+    EXPECT_EQ(attr->xmlns(), "");
+    EXPECT_EQ(attr->local_name(), "foo");
+    EXPECT_EQ(attr->name(), "foo");
+    EXPECT_EQ(attr->value(), "bar");
     doc.validate();
 }
 
@@ -143,41 +162,18 @@ TEST(ParseOptions, Fastest) {
     doc.parse<rapidxml::parse_fastest>(doc_text);
 
     auto node = doc.first_node();
-    EXPECT_EQ("single", std::string(node->name(), node->name_size()));
-    EXPECT_EQ("single", node->name_str());
-    EXPECT_EQ("urn:xmpp:example", std::string(node->xmlns(), node->xmlns_size()));
-    auto child = node->first_node(0, "urn:potato");
+    EXPECT_EQ("single", node->name());
+    EXPECT_EQ("urn:xmpp:example", node->xmlns());
+    auto child = node->first_node({}, "urn:potato");
     ASSERT_NE(nullptr, child);
-    EXPECT_EQ("child", std::string(child->name(), child->name_size()));
-    EXPECT_EQ("urn:potato", std::string(child->xmlns(), child->xmlns_size()));
+    EXPECT_EQ("child", child->name());
+    EXPECT_EQ("urn:potato", child->xmlns());
     child = node->first_node();
-    EXPECT_EQ("firstchild", std::string(child->name(), child->name_size()));
-    EXPECT_EQ("urn:xmpp:example", std::string(child->xmlns(), child->xmlns_size()));
+    EXPECT_EQ("firstchild", child->name());
+    EXPECT_EQ("urn:xmpp:example", child->xmlns());
     child = node->first_node("child");
-    EXPECT_EQ("child", std::string(child->name(), child->name_size()));
-    EXPECT_EQ("urn:xmpp:example", std::string(child->xmlns(), child->xmlns_size()));
-    doc.validate();
-}
-
-TEST(ParseOptions, Fixup) {
-    rapidxml::xml_document<> doc;
-    char doc_text[] = "<pfx:single xmlns:pfx='urn:xmpp:example'><pfx:firstchild/><child xmlns='urn:potato'/><pfx:child/></pfx:single>";
-    doc.parse<rapidxml::parse_fastest>(doc_text);
-
-    auto node = doc.first_node();
-    doc.fixup<0>(node, true);
-    EXPECT_EQ("single", std::string(node->name(), node->name_size()));
-    EXPECT_EQ("urn:xmpp:example", std::string(node->xmlns(), node->xmlns_size()));
-    auto child = node->first_node(0, "urn:potato");
-    ASSERT_NE(nullptr, child);
-    EXPECT_EQ("child", std::string(child->name(), child->name_size()));
-    EXPECT_EQ("urn:potato", std::string(child->xmlns(), child->xmlns_size()));
-    child = node->first_node();
-    EXPECT_EQ("firstchild", std::string(child->name(), child->name_size()));
-    EXPECT_EQ("urn:xmpp:example", std::string(child->xmlns(), child->xmlns_size()));
-    child = node->first_node("child");
-    EXPECT_EQ("child", std::string(child->name(), child->name_size()));
-    EXPECT_EQ("urn:xmpp:example", std::string(child->xmlns(), child->xmlns_size()));
+    EXPECT_EQ("child", child->name());
+    EXPECT_EQ("urn:xmpp:example", child->xmlns());
     doc.validate();
 }
 
@@ -187,37 +183,41 @@ TEST(ParseOptions, OpenOnly) {
     doc.parse<rapidxml::parse_open_only>(doc_text);
 
     auto node = doc.first_node();
-    EXPECT_STREQ("single", node->name());
-    EXPECT_STREQ("pfx", node->prefix());
-    EXPECT_STREQ("urn:xmpp:example", node->xmlns());
+    EXPECT_EQ("single", node->name());
+    EXPECT_EQ("pfx", node->prefix());
+    EXPECT_EQ("urn:xmpp:example", node->xmlns());
     doc.validate();
 }
 
 TEST(ParseOptions, ParseOne) {
     rapidxml::xml_document<> doc;
     char doc_text[] = "<pfx:single xmlns='jabber:client' xmlns:pfx='urn:xmpp:example'><pfx:features><feature1/><feature2/></pfx:features><message to='me@mydomain.com' from='you@yourdomcina.com' xml:lang='en'><body>Hello!</body></message>";
-    char * text = doc.parse<rapidxml::parse_open_only>(doc_text);
+    const char * text = doc.parse<rapidxml::parse_open_only>(doc_text);
 
-    auto node = doc.first_node();
-    EXPECT_STREQ("single", node->name());
-    EXPECT_STREQ("pfx", node->prefix());
-    EXPECT_STREQ("urn:xmpp:example", node->xmlns());
-    EXPECT_STREQ("<pfx:features><feature1/><feature2/></pfx:features><message to='me@mydomain.com' from='you@yourdomcina.com' xml:lang='en'><body>Hello!</body></message>", text);
+    {
+        auto node = doc.first_node();
+        EXPECT_EQ("single", node->name());
+        EXPECT_EQ("pfx", node->prefix());
+        EXPECT_EQ("urn:xmpp:example", node->xmlns());
+        EXPECT_STREQ(
+                "<pfx:features><feature1/><feature2/></pfx:features><message to='me@mydomain.com' from='you@yourdomcina.com' xml:lang='en'><body>Hello!</body></message>",
+                text);
+    }
     doc.validate();
     unsigned counter = 0;
     while (*text) {
         rapidxml::xml_document<> subdoc;
-        text = subdoc.parse<rapidxml::parse_parse_one>(text, doc);
+        text = subdoc.parse<rapidxml::parse_parse_one>(text, &doc);
         auto node = subdoc.first_node();
         ASSERT_NE(nullptr, node);
         switch(++counter) {
         case 1:
-            EXPECT_STREQ("features", node->name());
-            EXPECT_STREQ("urn:xmpp:example", node->xmlns());
+            EXPECT_EQ("features", node->name());
+            EXPECT_EQ("urn:xmpp:example", node->xmlns());
             break;
         case 2:
-            EXPECT_STREQ("message", node->name());
-            EXPECT_STREQ("jabber:client", node->xmlns());
+            EXPECT_EQ("message", node->name());
+            EXPECT_EQ("jabber:client", node->xmlns());
             break;
         default:
             FAIL();
@@ -229,28 +229,32 @@ TEST(ParseOptions, ParseOne) {
 TEST(ParseOptions, OpenOnlyFastest) {
     rapidxml::xml_document<> doc;
     char doc_text[] = "<pfx:single xmlns='jabber:client' xmlns:pfx='urn:xmpp:example'><pfx:features><feature1/><feature2/></pfx:features><message to='me@mydomain.com' from='you@yourdomcina.com' xml:lang='en'><body>Hello!</body></message>";
-    char * text = doc.parse<rapidxml::parse_open_only|rapidxml::parse_fastest>(doc_text);
+    const char * text = doc.parse<rapidxml::parse_open_only|rapidxml::parse_fastest>(doc_text);
 
-    auto node = doc.first_node();
-    EXPECT_EQ("single", node->name_str());
-    EXPECT_EQ("pfx", std::string(node->prefix(), node->prefix_size()));
-    EXPECT_EQ("urn:xmpp:example", node->xmlns_str());
-    EXPECT_STREQ("<pfx:features><feature1/><feature2/></pfx:features><message to='me@mydomain.com' from='you@yourdomcina.com' xml:lang='en'><body>Hello!</body></message>", text);
+    {
+        auto node = doc.first_node();
+        EXPECT_EQ("single", node->name());
+        EXPECT_EQ("pfx", node->prefix());
+        EXPECT_EQ("urn:xmpp:example", node->xmlns());
+        EXPECT_STREQ(
+                "<pfx:features><feature1/><feature2/></pfx:features><message to='me@mydomain.com' from='you@yourdomcina.com' xml:lang='en'><body>Hello!</body></message>",
+                text);
+    }
     doc.validate();
     unsigned counter = 0;
     while (*text) {
         rapidxml::xml_document<> subdoc;
-        text = subdoc.parse<rapidxml::parse_parse_one>(text, doc);
+        text = subdoc.parse<rapidxml::parse_parse_one>(text, &doc);
         auto node = subdoc.first_node();
         ASSERT_NE(nullptr, node);
         switch(++counter) {
         case 1:
-            EXPECT_EQ("features", node->name_str());
-            EXPECT_EQ("urn:xmpp:example", node->xmlns_str());
+            EXPECT_EQ("features", node->name());
+            EXPECT_EQ("urn:xmpp:example", node->xmlns());
             break;
         case 2:
-            EXPECT_EQ("message", node->name_str());
-            EXPECT_EQ("jabber:client", node->xmlns_str());
+            EXPECT_EQ("message", node->name());
+            EXPECT_EQ("jabber:client", node->xmlns());
             break;
         default:
             FAIL();

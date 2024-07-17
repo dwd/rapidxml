@@ -39,13 +39,19 @@ TEST(Create, NodeEmpty) {
 
 TEST(Create, Node2) {
     rapidxml::xml_document<> doc;
-    auto node = doc.allocate_node(rapidxml::node_element, "fish", "cakes", 4, 5);
+    auto node = doc.allocate_node(rapidxml::node_element, "fish", "cakes");
     doc.append_node(node);
 
     EXPECT_EQ(
         print(doc),
         "<fish>cakes</fish>\n"
     );
+}
+
+static std::string s = "tuna";
+
+std::string const & fn() {
+    return s;
 }
 
 TEST(Create, NodeAttr) {
@@ -60,7 +66,14 @@ TEST(Create, NodeAttr) {
         "<fish id=\"haddock\">cakes</fish>\n"
     );
 
-    auto tuna = doc.allocate_attribute("not-id", "tuna");
+    const std::string & s2 = fn();
+    const rapidxml::xml_attribute<>::view_type & sv{s2};
+
+    auto tuna = doc.allocate_attribute("not-id", fn());
+    // These check that the same buffer is being used throughout, instead of creating temporaries.
+    EXPECT_EQ(s.data(), s2.data());
+    EXPECT_EQ(s.data(), sv.data());
+    EXPECT_EQ(s.data(), tuna->value().data());
     node->append_attribute(tuna);
     EXPECT_EQ(haddock->next_attribute(), tuna);
     EXPECT_EQ(tuna->parent(), node);
@@ -89,5 +102,15 @@ TEST(Create, NodeAttr) {
     EXPECT_EQ(
         print(doc),
         "<fish>pie</fish>\n"
+    );
+    auto child = node->append_element({"urn:xmpp:fish:0", "shark"});
+    EXPECT_EQ(
+            print(doc),
+            "<fish>\n\t<shark xmlns=\"urn:xmpp:fish:0\"/>\n</fish>\n"
+    );
+    child->append_element({"urn:xmpp:fish:0", "species"}, "tiger");
+    EXPECT_EQ(
+            print(doc),
+            "<fish>\n\t<shark xmlns=\"urn:xmpp:fish:0\">\n\t\t<species>tiger</species>\n\t</shark>\n</fish>\n"
     );
 }
