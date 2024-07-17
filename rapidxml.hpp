@@ -15,6 +15,7 @@
     #include <new>          // For placement new
     #include <string>
     #include <optional>
+    #include <memory>
 #endif
 
 // On MSVC, disable "conditional expression is constant" warning (level 4).
@@ -153,14 +154,6 @@ namespace rapidxml
     // Define RAPIDXML_DYNAMIC_POOL_SIZE before including rapidxml.hpp if you want to override the default value.
     // After the static block is exhausted, dynamic blocks with approximately this size are allocated by memory_pool.
     #define RAPIDXML_DYNAMIC_POOL_SIZE (64 * 1024)
-#endif
-
-#ifndef RAPIDXML_ALIGNMENT
-    // Memory allocation alignment.
-    // Define RAPIDXML_ALIGNMENT before including rapidxml.hpp if you want to override the default value, which is the size of pointer.
-    // All memory allocations for nodes, attributes and strings will be aligned to this value.
-    // This must be a power of 2 and at least 1, otherwise memory_pool will not work.
-    #define RAPIDXML_ALIGNMENT sizeof(void *)
 #endif
 
 namespace rapidxml
@@ -420,7 +413,7 @@ namespace rapidxml
         //! \return Pointer to allocated node. This pointer will never be NULL.
         template<typename... Args>
         xml_node<Ch> * allocate_node_low(Args... args) {
-            void *memory = allocate_aligned(sizeof(xml_node<Ch>));
+            void *memory = allocate_aligned<xml_node<Ch>>();
             auto *node = new(memory) xml_node<Ch>(args...);
             return node;
         }
@@ -447,7 +440,7 @@ namespace rapidxml
         //! \return Pointer to allocated attribute. This pointer will never be NULL.
         template<typename... Args>
         xml_attribute<Ch> *allocate_attribute_low(Args... args) {
-            void *memory = allocate_aligned(sizeof(xml_attribute<Ch>));
+            void *memory = allocate_aligned<xml_attribute<Ch>>();
             auto *attribute = new(memory) xml_attribute<Ch>(args...);
             return attribute;
         }
@@ -474,7 +467,7 @@ namespace rapidxml
         view_type allocate_string(const Sch *source, std::size_t size)
         {
             if (size == 0) return {}; // No need to allocate.
-            Ch *result = static_cast<Ch *>(allocate_aligned(size * sizeof(Ch)));
+            Ch *result = allocate_aligned<Ch>(size);
             if (source)
                 for (std::size_t i = 0; i < size; ++i)
                     result[i] = source[i];
@@ -550,11 +543,14 @@ namespace rapidxml
         {
             while (m_begin != m_static_memory)
             {
-                char *previous_begin = reinterpret_cast<header *>(align(m_begin))->previous_begin;
+                std::size_t s = sizeof(header) * 2;
+                void * h = m_begin;
+                std::align(alignof(header), sizeof(header), h, s);
+                void *previous_begin = reinterpret_cast<header *>(h)->previous_begin;
                 if (m_free_func)
                     m_free_func(m_begin);
                 else
-                    delete[] m_begin;
+                    delete[] reinterpret_cast<char *>(m_begin);
                 m_begin = previous_begin;
             }
             init();
@@ -575,7 +571,7 @@ namespace rapidxml
         //! \param ff Free function, or 0 to restore default function
         [[maybe_unused]] void set_allocator(alloc_func *af, free_func *ff)
         {
-            assert(m_begin == m_static_memory && m_ptr == align(m_begin));    // Verify that no memory is allocated yet
+            assert(m_begin == m_static_memory && m_ptr == m_begin);    // Verify that no memory is allocated yet
             m_alloc_func = af;
             m_free_func = ff;
         }
@@ -584,23 +580,17 @@ namespace rapidxml
 
         struct header
         {
-            char *previous_begin;
+            void *previous_begin;
         };
 
         void init()
         {
             m_begin = m_static_memory;
-            m_ptr = align(m_begin);
-            m_end = m_static_memory + sizeof(m_static_memory);
+            m_ptr = m_begin;
+            m_space = sizeof(m_static_memory);
         }
 
-        char *align(char *ptr)
-        {
-            std::size_t alignment = ((RAPIDXML_ALIGNMENT - (reinterpret_cast<std::intptr_t>(ptr) & (RAPIDXML_ALIGNMENT - 1))) & (RAPIDXML_ALIGNMENT - 1));
-            return ptr + alignment;
-        }
-
-        char *allocate_raw(std::size_t size)
+        void *allocate_raw(std::size_t size)
         {
             // Allocate
             void *memory;
@@ -617,46 +607,49 @@ namespace rapidxml
                     RAPIDXML_PARSE_ERROR("out of memory", 0);
 #endif
             }
-            return static_cast<char *>(memory);
+            return memory;
         }
 
-        void *allocate_aligned(std::size_t size)
+        template<typename T>
+        T *allocate_aligned(std::size_t n = 1)
         {
+            auto size = n * sizeof(T);
             // Calculate aligned pointer
-            char *result = align(m_ptr);
-
-            // If not enough memory left in current pool, allocate a new pool
-            if (result + size > m_end)
-            {
+            if (!std::align(alignof(T), sizeof(T) * n, m_ptr, m_space)) {
+                // If not enough memory left in current pool, allocate a new pool
                 // Calculate required pool size (may be bigger than RAPIDXML_DYNAMIC_POOL_SIZE)
                 std::size_t pool_size = RAPIDXML_DYNAMIC_POOL_SIZE;
                 if (pool_size < size)
                     pool_size = size;
 
                 // Allocate
-                std::size_t alloc_size = sizeof(header) + (2 * RAPIDXML_ALIGNMENT - 2) + pool_size;     // 2 alignments required in worst case: one for header, one for actual allocation
-                char *raw_memory = allocate_raw(alloc_size);
+                std::size_t alloc_size = sizeof(header) + (2 * alignof(header) - 2) + pool_size;     // 2 alignments required in worst case: one for header, one for actual allocation
+                void *raw_memory = allocate_raw(alloc_size);
 
                 // Setup new pool in allocated memory
-                char *pool = align(raw_memory);
-                header *new_header = reinterpret_cast<header *>(pool);
-                new_header->previous_begin = m_begin;
+                void *new_header = raw_memory;
+                std::align(alignof(header), sizeof(header), new_header, alloc_size);
+                auto * h = reinterpret_cast<header *>(new_header);
+                h->previous_begin = m_begin;
                 m_begin = raw_memory;
-                m_ptr = pool + sizeof(header);
-                m_end = raw_memory + alloc_size;
+                m_ptr = (h + 1);
+                m_space = alloc_size - sizeof(header);
 
                 // Calculate aligned pointer again using new pool
-                result = align(m_ptr);
+                return allocate_aligned<T>(n);
             }
-
-            // Update pool and return aligned pointer
-            m_ptr = result + size;
+            auto * result = reinterpret_cast<T *>(m_ptr);
+            m_ptr = (result + n);
+            m_space -= size;
+            auto blank = reinterpret_cast<char *>(result);
+            auto end = blank + size;
+            while (blank != end) *blank++ = 'X';
             return result;
         }
 
-        char *m_begin = nullptr;                                      // Start of raw memory making up current pool
-        char *m_ptr = nullptr;                                        // First free byte in current pool
-        char *m_end = nullptr;                                        // One past last available byte in current pool
+        void *m_begin = nullptr;                                      // Start of raw memory making up current pool
+        void *m_ptr = nullptr;                                        // First free byte in current pool
+        std::size_t m_space = RAPIDXML_STATIC_POOL_SIZE;                                        // Available space remaining
         char m_static_memory[RAPIDXML_STATIC_POOL_SIZE];    // Static raw memory
         alloc_func *m_alloc_func = nullptr;                           // Allocator function, or 0 if default is to be used
         free_func *m_free_func = nullptr;                             // Free function, or 0 if default is to be used
