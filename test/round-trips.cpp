@@ -150,7 +150,7 @@ TEST(RoundTrip, EverythingStream) {
     auto output = ss1.str();
     rapidxml::xml_document<> doc2;
     for (auto & child : doc.children()) {
-        doc2.append_noe(doc2.clone_node(&child, true));
+        doc2.append_node(doc2.clone_node(&child, true));
     }
     std::stringstream ss2;
     ss2 << doc2;

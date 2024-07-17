@@ -12,6 +12,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+file(DOWNLOAD https://www.w3.org/TR/xml/REC-xml-20081126.xml ${CMAKE_CURRENT_BINARY_DIR}/REC-xml-20081126.xml)
+
 enable_testing()
 add_executable(rapidxml-test
         test/parse-simple.cpp

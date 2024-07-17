@@ -10,12 +10,14 @@
 #include "rapidxml_print.hpp"
 #include "rapidxml_iterators.hpp"
 
+const auto xml_sample_file = "REC-xml-20081126.xml";
+
 TEST(Perf, Parse) {
     using std::chrono::high_resolution_clock;
     using std::chrono::duration_cast;
     using std::chrono::microseconds;
 
-    rapidxml::file source("../REC-xml-20081126.xml");
+    rapidxml::file source(xml_sample_file);
 
     std::vector<unsigned long long> timings;
     for (auto i = 0; i != 1000; ++i) {
@@ -38,7 +40,7 @@ TEST(Perf, Parse2) {
     using std::chrono::duration_cast;
     using std::chrono::microseconds;
 
-    rapidxml::file source("../REC-xml-20081126.xml");
+    rapidxml::file source(xml_sample_file);
 
     std::vector<unsigned long long> timings;
     for (auto i = 0; i != 1000; ++i) {
@@ -62,7 +64,7 @@ TEST(Perf, PrintClean) {
     using std::chrono::duration_cast;
     using std::chrono::microseconds;
 
-    rapidxml::file source("../REC-xml-20081126.xml");
+    rapidxml::file source(xml_sample_file);
 
     std::vector<unsigned long long> timings;
     rapidxml::xml_document<> doc;
@@ -87,7 +89,7 @@ TEST(Perf, PrintDirty) {
     using std::chrono::duration_cast;
     using std::chrono::microseconds;
 
-    rapidxml::file source("../REC-xml-20081126.xml");
+    rapidxml::file source(xml_sample_file);
 
     std::vector<unsigned long long> timings;
     rapidxml::xml_document<> doc_o;
