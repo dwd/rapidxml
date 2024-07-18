@@ -13,9 +13,9 @@
 const auto xml_sample_file = "REC-xml-20081126.xml";
 
 #ifdef RAPIDXML_PERF_TESTS
-#define PERF_TEST() GTEST_SKIP() << "Skipping performance test"
-#else
 #define PERF_TEST() (void)0
+#else
+#define PERF_TEST() GTEST_SKIP() << "Skipping performance test"
 #endif
 
 TEST(Perf, Parse) {

@@ -37,10 +37,12 @@ target_include_directories(rapidxml-test
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
-if (${RAPIDXML_PERF_TESTS})
+if (RAPIDXML_PERF_TESTS)
+    message("Running performance tests")
     file(DOWNLOAD https://www.w3.org/TR/xml/REC-xml-20081126.xml ${CMAKE_CURRENT_BINARY_DIR}/REC-xml-20081126.xml)
     target_compile_definitions(rapidxml-test PRIVATE RAPIDXML_TESTING=1 RAPIDXML_PERF_TESTS=1)
 else()
+    message("Will skip performance tests")
     target_compile_definitions(rapidxml-test PRIVATE RAPIDXML_TESTING=1)
 endif()
 
