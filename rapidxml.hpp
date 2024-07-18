@@ -1222,7 +1222,7 @@ namespace rapidxml
         }
         optional_ptr<xml_node<Ch>> allocate_element(std::initializer_list<const Ch *> const & clark_name, view_type const & value) {
             auto child = allocate_element(clark_name);
-            child->value(value);
+            if (!value.empty()) child->value(value);
             return child;
         }
     public:
@@ -1252,19 +1252,16 @@ namespace rapidxml
         auto prepend_node(optional_ptr<xml_node<Ch>> ptr) {
             return prepend_node(ptr.get());
         }
-        template<typename... Args>
-        auto prepend_element(view_type const & v, Args... args) {
-            auto child = allocate_element(v, args...);
+        auto prepend_element(view_type const & v, view_type const & value = {}) {
+            auto child = allocate_element(v, value);
             return prepend_node(child);
         }
-        template<typename... Args>
-        auto prepend_element(std::tuple<view_type, view_type> const & il, Args... args) {
-            auto child = allocate_element(il, args...);
+        auto prepend_element(std::tuple<view_type, view_type> const & il, view_type const & value = {}) {
+            auto child = allocate_element(il, value);
             return prepend_node(child);
         }
-        template<typename... Args>
-        auto prepend_element(std::initializer_list<const Ch *> const & il, Args... args) {
-            auto child = allocate_element(il, args...);
+        auto prepend_element(std::initializer_list<const Ch *> const & il, view_type const & value = {}) {
+            auto child = allocate_element(il, value);
             return prepend_node(child);
         }
 
@@ -1293,19 +1290,16 @@ namespace rapidxml
         optional_ptr<xml_node<Ch>> append_node(optional_ptr<xml_node<Ch>> ptr) {
             return append_node(ptr.get());
         }
-        template<typename... Args>
-        auto append_element(view_type const & v, Args... args) {
-            auto child = allocate_element(v, args...);
+        auto append_element(view_type const & v, view_type const & value = {}) {
+            auto child = allocate_element(v, value);
             return append_node(child);
         }
-        template<typename... Args>
-        auto append_element(std::tuple<view_type, view_type> const & il, Args... args) {
-            auto child = allocate_element(il, args...);
+        auto append_element(std::tuple<view_type, view_type> const & il, view_type const & value = {}) {
+            auto child = allocate_element(il, value);
             return append_node(child);
         }
-        template<typename... Args>
-        auto append_element(std::initializer_list<const Ch *> const & il, Args... args) {
-            auto child = allocate_element(il, args...);
+        auto append_element(std::initializer_list<const Ch *> const & il, view_type const & value = {}) {
+            auto child = allocate_element(il, value);
             return append_node(child);
         }
 
@@ -1335,19 +1329,16 @@ namespace rapidxml
         auto insert_node(optional_ptr<xml_node<Ch>> where, optional_ptr<xml_node<Ch>> ptr) {
             return insert_node(where.ptr(), ptr.ptr());
         }
-        template<typename... Args>
-        auto insert_element(optional_ptr<xml_node<Ch>> where, view_type const & v, Args... args) {
-            auto child = allocate_element(v, args...);
+        auto insert_element(optional_ptr<xml_node<Ch>> where, view_type const & v, view_type const & value = {}) {
+            auto child = allocate_element(v, value);
             return insert_node(where, child);
         }
-        template<typename... Args>
-        auto insert_element(optional_ptr<xml_node<Ch>> where, std::tuple<view_type, view_type> const & il, Args... args) {
-            auto child = allocate_element(il, args...);
+        auto insert_element(optional_ptr<xml_node<Ch>> where, std::tuple<view_type, view_type> const & il, view_type const & value = {}) {
+            auto child = allocate_element(il, value);
             return insert_node(where, child);
         }
-        template<typename... Args>
-        auto insert_element(optional_ptr<xml_node<Ch>> where, std::initializer_list<const Ch *> const & il, Args... args) {
-            auto child = allocate_element(il, args...);
+        auto insert_element(optional_ptr<xml_node<Ch>> where, std::initializer_list<const Ch *> const & il, view_type const & value = {}) {
+            auto child = allocate_element(il, value);
             return insert_node(where, child);
         }
 

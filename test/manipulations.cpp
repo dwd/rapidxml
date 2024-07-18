@@ -103,10 +103,11 @@ TEST(Create, NodeAttr) {
         print(doc),
         "<fish>pie</fish>\n"
     );
-    auto child = node->append_element({"urn:xmpp:fish:0", "shark"});
+    auto child = node->append_element({"urn:xmpp:fish:0", "shark"}, fn());
+    EXPECT_EQ(s.data(), child->value().data());
     EXPECT_EQ(
             print(doc),
-            "<fish>\n\t<shark xmlns=\"urn:xmpp:fish:0\"/>\n</fish>\n"
+            "<fish>\n\t<shark xmlns=\"urn:xmpp:fish:0\">tuna</shark>\n</fish>\n"
     );
     child->append_element({"urn:xmpp:fish:0", "species"}, "tiger");
     EXPECT_EQ(
