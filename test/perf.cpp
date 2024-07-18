@@ -12,11 +12,18 @@
 
 const auto xml_sample_file = "REC-xml-20081126.xml";
 
+#ifdef RAPIDXML_PERF_TESTS
+#define PERF_TEST() GTEST_SKIP() << "Skipping performance test"
+#else
+#define PERF_TEST() (void)0
+#endif
+
 TEST(Perf, Parse) {
     using std::chrono::high_resolution_clock;
     using std::chrono::duration_cast;
     using std::chrono::microseconds;
 
+    PERF_TEST();
     rapidxml::file source(xml_sample_file);
 
     std::vector<unsigned long long> timings;
@@ -40,6 +47,7 @@ TEST(Perf, Parse2) {
     using std::chrono::duration_cast;
     using std::chrono::microseconds;
 
+    PERF_TEST();
     rapidxml::file source(xml_sample_file);
 
     std::vector<unsigned long long> timings;
@@ -64,6 +72,7 @@ TEST(Perf, PrintClean) {
     using std::chrono::duration_cast;
     using std::chrono::microseconds;
 
+    PERF_TEST();
     rapidxml::file source(xml_sample_file);
 
     std::vector<unsigned long long> timings;
@@ -89,6 +98,7 @@ TEST(Perf, PrintDirty) {
     using std::chrono::duration_cast;
     using std::chrono::microseconds;
 
+    PERF_TEST();
     rapidxml::file source(xml_sample_file);
 
     std::vector<unsigned long long> timings;

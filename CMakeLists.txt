@@ -4,6 +4,7 @@ project(rapidxml)
 # GoogleTest requires at least C++14
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+option(RAPIDXML_PERF_TESTS "Enable (very slow) performance tests" OFF)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -14,8 +15,6 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(googletest)
-
-file(DOWNLOAD https://www.w3.org/TR/xml/REC-xml-20081126.xml ${CMAKE_CURRENT_BINARY_DIR}/REC-xml-20081126.xml)
 
 enable_testing()
 add_executable(rapidxml-test
@@ -38,7 +37,12 @@ target_include_directories(rapidxml-test
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
-target_compile_definitions(rapidxml-test PRIVATE RAPIDXML_TESTING=1)
+if (${RAPIDXML_PERF_TESTS})
+    target_compile_definitions(rapidxml-test PRIVATE RAPIDXML_TESTING=1)
+else()
+    file(DOWNLOAD https://www.w3.org/TR/xml/REC-xml-20081126.xml ${CMAKE_CURRENT_BINARY_DIR}/REC-xml-20081126.xml)
+    target_compile_definitions(rapidxml-test PRIVATE RAPIDXML_TESTING=1 RAPIDXML_PERF_TESTS=1)
+endif()
 
 include(GoogleTest)
 gtest_discover_tests(rapidxml-test)
