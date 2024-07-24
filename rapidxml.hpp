@@ -799,6 +799,8 @@ namespace rapidxml
         }
         void value(view_type const & v) {
             m_value = v;
+            this->value_raw("");
+            if (this->m_parent) this->m_parent->dirty_parent();
         }
         // Return true if the value has been decoded.
         bool value_decoded() const {
@@ -945,7 +947,18 @@ namespace rapidxml
         }
 
         void value(view_type const & v) {
+            if (this->m_type == node_element) {
+                // Set the first data node to the value, if one exists.
+                for (auto node = m_first_node; node; node = node->m_next_sibling) {
+                    if (node->type() == node_data) {
+                        node->value(v);
+                        break;
+                    }
+                }
+            }
             m_value = v;
+            this->value_raw("");
+            dirty();
         }
 
         bool value_decoded() const {
