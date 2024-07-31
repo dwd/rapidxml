@@ -66,6 +66,54 @@ TEST(Predicates, Nodes) {
     EXPECT_EQ(match->name(), "two");
 }
 
+TEST(Predicates, AllNodes) {
+    std::string xml = "<children><one><two/></one><three><four><five/></four><six/></three></children>";
+    rapidxml::xml_document<> doc;
+    doc.parse<rapidxml::parse_full>(xml);
+    auto it = rapidxml::descendant_iterator<>(doc.first_node());
+    EXPECT_EQ(it->name(), "one");
+    ++it;
+    EXPECT_EQ(it->name(), "two");
+    ++it;
+    EXPECT_EQ(it->name(), "three");
+    ++it;
+    EXPECT_EQ(it->name(), "four");
+    ++it;
+    EXPECT_EQ(it->name(), "five");
+    ++it;
+    EXPECT_EQ(it->name(), "six");
+    ++it;
+    EXPECT_FALSE(it.valid());
+}
+
+TEST(Predicates, AllNodesRev) {
+    std::string xml = "<children><one><two/></one><three><four><five/></four><six/></three></children>";
+    rapidxml::xml_document<> doc;
+    doc.parse<rapidxml::parse_full>(xml);
+    auto it = rapidxml::descendant_iterator<>(doc.first_node());
+    EXPECT_EQ(it->name(), "one");
+    ++it;
+    EXPECT_EQ(it->name(), "two");
+    ++it;
+    EXPECT_EQ(it->name(), "three");
+    ++it;
+    EXPECT_EQ(it->name(), "four");
+    ++it;
+    EXPECT_EQ(it->name(), "five");
+    ++it;
+    EXPECT_EQ(it->name(), "six");
+    --it;
+    EXPECT_EQ(it->name(), "five");
+    --it;
+    EXPECT_EQ(it->name(), "four");
+    --it;
+    EXPECT_EQ(it->name(), "three");
+    --it;
+    EXPECT_EQ(it->name(), "two");
+    --it;
+    EXPECT_EQ(it->name(), "one");
+}
+
 TEST(Predicates, Attributes) {
     std::string xml = R"(<children one="1" two="2" three="3"/>)";
     rapidxml::xml_document<> doc;

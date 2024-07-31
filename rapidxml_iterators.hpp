@@ -101,6 +101,126 @@ class node_iterator
 
     };
 
+    //! Iterator of child nodes of xml_node
+    template<typename Ch=char>
+class descendant_iterator
+    {
+    public:
+        using value_type = xml_node<Ch>;
+        using reference = xml_node<Ch> &;
+        using pointer = xml_node<Ch> *;
+        using iterator_category = std::bidirectional_iterator_tag;
+        using difference_type = long;
+
+        descendant_iterator()
+            : m_parent(), m_node()
+        {
+        }
+
+        explicit descendant_iterator(xml_node<Ch>::ptr node)
+            : m_parent(node), m_node(node->first_node())
+        {
+        }
+
+        descendant_iterator(descendant_iterator && other)  noexcept : m_parent(other.m_parent), m_node(other.m_node) {}
+        descendant_iterator(descendant_iterator const & other) : m_parent(other.m_parent), m_node(other.m_node) {}
+
+        reference operator *() const
+        {
+            return const_cast<reference>(*m_node);
+        }
+
+        pointer operator->() const
+        {
+            return const_cast<pointer>(m_node.get());
+        }
+
+        descendant_iterator& operator++()
+        {
+            if (m_node->first_node()) {
+                m_node = m_node->first_node();
+            } else if (m_node->next_sibling()) {
+                m_node = m_node->next_sibling();
+            } else {
+                // Run out of children, so move upward until we can find a sibling.
+                while (true) {
+                    m_node = m_node->parent();
+                    if (m_node == m_parent) {
+                        m_node = nullptr;
+                        break;
+                    }
+                    if (m_node->next_sibling()) {
+                        m_node = m_node->next_sibling();
+                        break;
+                    }
+                }
+            }
+            return *this;
+        }
+
+        descendant_iterator operator++(int)
+        {
+            node_iterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+
+        descendant_iterator& operator--()
+        {
+            if (!m_node->previous_sibling()) {
+                m_node = m_node->parent();
+                if (m_node == m_parent) {
+                    m_node = nullptr;
+                }
+            } else {
+                m_node = m_node->previous_sibling();
+                while (m_node->last_node()) {
+                    m_node = m_node->last_node();
+                }
+            }
+            return *this;
+        }
+
+        descendant_iterator operator--(int)
+        {
+            node_iterator tmp = *this;
+            --(*this);
+            return tmp;
+        }
+
+        bool operator == (const descendant_iterator<Ch>& rhs) const
+        {
+            return m_node == rhs.m_node;
+        }
+
+        bool operator != (const descendant_iterator<Ch>& rhs) const
+        {
+            return m_node != rhs.m_node;
+        }
+
+    descendant_iterator & operator = (descendant_iterator && other)  noexcept {
+            m_parent = other.m_parent;
+            m_node = other.m_node;
+            return *this;
+        }
+
+    descendant_iterator & operator = (descendant_iterator const & other) {
+        m_parent = other.m_parent;
+        m_node = other.m_node;
+            return *this;
+        }
+
+        bool valid()
+        {
+            return m_node.has_value();
+        }
+
+    private:
+
+        optional_ptr<xml_node<Ch>> m_parent;
+        optional_ptr<xml_node<Ch>> m_node;
+    };
+
     //! Iterator of child attributes of xml_node
     template<class Ch>
     class attribute_iterator
@@ -211,6 +331,34 @@ class node_iterator
         }
         const_iterator begin() const {
             return const_iterator(m_node);
+        }
+        const_iterator end() const {
+            return {};
+        }
+    };
+
+    //! Container adaptor for child nodes
+    template<typename Ch>
+    class descendants
+    {
+        xml_node<Ch> & m_node;
+    public:
+        explicit descendants(xml_node<Ch> & node) : m_node(node) {}
+        explicit descendants(optional_ptr<xml_node<Ch>> ptr) : m_node(ptr.value()) {}
+        descendants(descendants && other)  noexcept : m_node(other.m_node) {}
+        descendants(descendants const & other) : m_node(other.m_node) {}
+
+        using const_iterator = descendant_iterator<Ch>;
+        using iterator = descendant_iterator<Ch>;
+
+        iterator begin() {
+            return iterator(&m_node);
+        }
+        iterator end() {
+            return {};
+        }
+        const_iterator begin() const {
+            return const_iterator(&m_node);
         }
         const_iterator end() const {
             return {};

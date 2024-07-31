@@ -163,6 +163,7 @@ namespace rapidxml
     template<typename Ch> class xml_attribute;
     template<typename Ch> class xml_document;
     template<typename Ch> class children;
+    template<typename Ch> class descendants;
     template<typename Ch> class attributes;
 
     //! Enumeration listing all node types produced by the parser.
@@ -1052,6 +1053,10 @@ namespace rapidxml
             return rapidxml::children<Ch>{*this};
         }
 
+        rapidxml::descendants<Ch> descendants() const {
+            return rapidxml::descendants<Ch>{optional_ptr<xml_node<Ch>>{const_cast<xml_node<Ch> *>(this)}};
+        }
+
         rapidxml::attributes<Ch> attributes() const {
             return rapidxml::attributes<Ch>{*this};
         }
@@ -1095,7 +1100,7 @@ namespace rapidxml
             }
             for (xml_node<Ch> *child = m_last_node; child; child = child->m_prev_sibling) {
                 if ((name.empty() || child->name() == name)
-                    && (!xmlns || child->xmlns() == xmlns)) {
+                    && (xmlns.empty() || child->xmlns() == xmlns)) {
                     return child;
                 }
             }
@@ -1112,7 +1117,7 @@ namespace rapidxml
         optional_ptr<xml_node<Ch>> previous_sibling(view_type const & name = {}, view_type const & asked_xmlns = {}) const
         {
             assert(this->m_parent);     // Cannot query for siblings if node has no parent
-            if (name)
+            if (!name.empty())
             {
                 view_type xmlns = asked_xmlns;
                 if (xmlns.empty() && !name.empty()) {
@@ -1122,7 +1127,7 @@ namespace rapidxml
                 }
                 for (xml_node<Ch> *sibling = m_prev_sibling; sibling; sibling = sibling->m_prev_sibling)
                     if ((name.empty() || sibling->name() == name)
-                        && (!xmlns || sibling->xmlns() == xmlns))
+                        && (xmlns.empty() || sibling->xmlns() == xmlns))
                         return sibling;
                 return nullptr;
             }
