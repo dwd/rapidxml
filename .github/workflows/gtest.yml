@@ -12,6 +12,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Checkout Sentry Native
+        uses: actions/checkout@v4
+        with:
+          repository: getsentry/sentry-native
+          path: deps/sentry-native
+      - name: Apt dance
+        run: sudo apt-get update && sudo apt-get upgrade -yy
+      - name: Install libcurl
+        run: sudo apt-get install libcurl4-openssl-dev
       - name: Make build directory
         run: mkdir gtest-build
       - name: CMake
