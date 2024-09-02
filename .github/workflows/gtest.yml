@@ -30,7 +30,7 @@ jobs:
       - name: Unpack Coverity
         run: mkdir coverity && cd coverity && tar xf ../coverity.tar.gz && ln -s cov-analysis-* current
       - name: Make
-        run: cd gtest-build && ../coverity/current/cov-build --dir cov-int make
+        run: cd gtest-build && ../coverity/current/bin/cov-build --dir cov-int make
       - name: Run Tests
         run: cd gtest-build && ./rapidxml-test
       - name: Tar up Coverity output
