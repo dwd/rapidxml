@@ -16,7 +16,21 @@ jobs:
         run: mkdir gtest-build
       - name: CMake
         run: cd gtest-build && cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE-CXX_FLAGS=-Werror ..
+      - name: Download Coverity Scan
+        run: curl https://scan.coverity.com/download/linux64 -d token=6Uqw2igbwL4oGX5kyFHjDg&project=dwd%2Frapidxml -o coverity.tar.gz
+      - name: Unpack Coverity
+        run: mkdir coverity && cd coverity && tar xf ../coverity.tar.gz
       - name: Make
-        run: cd gtest-build && make
+        run: cd gtest-build && ../coverity/cov-build --dir cov-int make
       - name: Run Tests
         run: cd gtest-build && ./rapidxml-test
+      - name: Tar up Coverity output
+        run: cd gtest-build && tar czf ../cov-build-output.tar.gz cov-int
+      - name: Upload it
+        run: |
+          curl --form token=${{ secrets.COVERITY_TOKEN }} \
+          --form email=dave@cridland.net \
+          --form file=@cov-build-output.tar.gz \
+          --form version="vX" \
+          --form description="RapidXML (Dave's Version)" \
+          https://scan.coverity.com/builds?project=dwd%2Frapidxml
