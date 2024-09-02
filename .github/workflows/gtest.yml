@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: getsentry/sentry-native
-          path: deps/sentry-native
+          path: sentry-native
       - name: Apt dance
         run: sudo apt-get update && sudo apt-get upgrade -yy
       - name: Install libcurl
