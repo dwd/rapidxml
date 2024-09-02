@@ -42,7 +42,7 @@ namespace rapidxml {
         };
 
         struct handle_type : std::coroutine_handle<promise_type> {
-            explicit handle_type(std::coroutine_handle<promise_type> h) : std::coroutine_handle<promise_type>(h) {}
+            explicit handle_type(std::coroutine_handle<promise_type> && h) : std::coroutine_handle<promise_type>(std::move(h)) {}
 
             T &operator*() {
                 return *(this->promise().value);

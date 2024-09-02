@@ -75,7 +75,7 @@ namespace rapidxml {
 
             bool do_match(const xml_node<Ch> & t) override {
                 if (t.type() != node_element) return false;
-                for (auto attr : t.attributes()) {
+                for (auto const & attr : t.attributes()) {
                     if (m_xmlns.has_value()) {
                         if (m_name == "*" || attr.local_name() != m_name) continue;
                         if (attr.xmlns() != m_xmlns.value()) continue;
