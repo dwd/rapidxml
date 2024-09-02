@@ -26,11 +26,11 @@ jobs:
       - name: CMake
         run: cd gtest-build && cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE-CXX_FLAGS=-Werror ..
       - name: Download Coverity Scan
-        run: curl https://scan.coverity.com/download/linux64 -d token=6Uqw2igbwL4oGX5kyFHjDg&project=dwd%2Frapidxml -o coverity.tar.gz
+        run: curl https://scan.coverity.com/download/linux64 -d 'token=${{ secrets.COVERITY_TOKEN }}&project=dwd%2Frapidxml' -o coverity.tar.gz
       - name: Unpack Coverity
-        run: mkdir coverity && cd coverity && tar xf ../coverity.tar.gz
+        run: mkdir coverity && cd coverity && tar xf ../coverity.tar.gz && ln -s cov-analysis-* current
       - name: Make
-        run: cd gtest-build && ../coverity/cov-build --dir cov-int make
+        run: cd gtest-build && ../coverity/current/cov-build --dir cov-int make
       - name: Run Tests
         run: cd gtest-build && ./rapidxml-test
       - name: Tar up Coverity output
