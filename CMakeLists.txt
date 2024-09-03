@@ -5,6 +5,7 @@ project(rapidxml)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(RAPIDXML_PERF_TESTS "Enable (very slow) performance tests" OFF)
+option(RAPIDXML_SENTRY "Use Sentry (for tests only)" ON)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -15,6 +16,11 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(googletest)
+
+if (RAPIDXML_SENTRY)
+    set(SENTRY_BACKEND inproc)
+    add_subdirectory(sentry-native EXCLUDE_FROM_ALL)
+endif(RAPIDXML_SENTRY)
 
 enable_testing()
 add_executable(rapidxml-test
@@ -29,10 +35,18 @@ add_executable(rapidxml-test
         test/perf.cpp
         rapidxml_wrappers.hpp
         test/iterators.cpp
+        rapidxml_predicates.hpp
+        test/xpath.cpp
+        rapidxml_generator.hpp
+        test/main.cc
 )
-target_link_libraries(rapidxml-test
-        GTest::gtest_main
+target_link_libraries(rapidxml-test PRIVATE
+        GTest::gtest
 )
+if(RAPIDXML_SENTRY)
+    target_link_libraries(rapidxml-test PRIVATE sentry)
+    target_compile_definitions(rapidxml-test PRIVATE DWD_GTEST_SENTRY=1)
+endif()
 target_include_directories(rapidxml-test
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
