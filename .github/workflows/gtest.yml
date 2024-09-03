@@ -43,3 +43,14 @@ jobs:
           --form version="vX" \
           --form description="RapidXML (Dave's Version)" \
           https://scan.coverity.com/builds?project=dwd%2Frapidxml
+      - name: SonarQube install
+        uses: SonarSource/sonarcloud-github-c-cpp@v3
+      - name: Clean build
+        run: cd gtest-build && make clean
+      - name: Build Wrapper
+        run: cd gtest-build && build-wrapper-linux-x86-64 --out-dir sonar-out make
+      - name: Sonar Scanner
+        run: cd gtest-build && sonar-scanner --define sonar.cfamily.compile-commands=sonar-out/compile_commands.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
