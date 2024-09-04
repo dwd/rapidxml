@@ -20,39 +20,21 @@ jobs:
           repository: getsentry/sentry-native
           path: sentry-native
       - name: Apt dance
-        run: sudo apt-get update && sudo apt-get upgrade -yy
+        run: sudo apt-get update
       - name: Install libcurl
         run: sudo apt-get install libcurl4-openssl-dev
+      - name: SonarQube install
+        uses: SonarSource/sonarcloud-github-c-cpp@v3
       - name: Make build directory
         run: mkdir gtest-build
       - name: CMake
-        run: cd gtest-build && cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE-CXX_FLAGS=-Werror ..
-      - name: Download Coverity Scan
-        run: curl https://scan.coverity.com/download/linux64 -d 'token=${{ secrets.COVERITY_TOKEN }}&project=dwd%2Frapidxml' -o coverity.tar.gz
-      - name: Unpack Coverity
-        run: mkdir coverity && cd coverity && tar xf ../coverity.tar.gz && ln -s cov-analysis-* current
-      - name: Make
-        run: cd gtest-build && ../coverity/current/bin/cov-build --dir cov-int make
-      - name: Run Tests
-        run: cd gtest-build && ./rapidxml-test
-      - name: Tar up Coverity output
-        run: cd gtest-build && tar czf ../cov-build-output.tar.gz cov-int
-      - name: Upload it
-        run: |
-          curl --form token=${{ secrets.COVERITY_TOKEN }} \
-          --form email=dave@cridland.net \
-          --form file=@cov-build-output.tar.gz \
-          --form version="vX" \
-          --form description="RapidXML (Dave's Version)" \
-          https://scan.coverity.com/builds?project=dwd%2Frapidxml
-      - name: SonarQube install
-        uses: SonarSource/sonarcloud-github-c-cpp@v3
-      - name: Clean build
-        run: cd gtest-build && make clean
+        run: cmake -S . -B gtest-build -DCMAKE_BUILD_TYPE=Debug -DCMAKE-CXX_FLAGS=-Werror
       - name: Build Wrapper
-        run: cd gtest-build && build-wrapper-linux-x86-64 --out-dir sonar-out make
+        run: build-wrapper-linux-x86-64 --out-dir sonar-out cmake --build gtest-build
       - name: Sonar Scanner
-        run: cd gtest-build && sonar-scanner --define sonar.cfamily.compile-commands=sonar-out/compile_commands.json --define sonar.projectKey=dwd-github_rapidxml --define sonar.organization=dwd-github
+        run: sonar-scanner --define sonar.cfamily.compile-commands=sonar-out/compile_commands.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Run Tests
+        run: cd gtest-build && ./rapidxml-test
