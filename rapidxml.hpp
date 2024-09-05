@@ -457,35 +457,24 @@ namespace rapidxml
         //! \param size Number of characters to allocate, or zero to calculate it automatically from source string length; if size is 0, source string must be specified and null terminated.
         //! \return Pointer to allocated char array. This pointer will never be NULL.
         template<typename Sch>
-        std::span<Ch> allocate_span(const Sch *source, std::size_t size)
+        std::span<Ch> allocate_span(std::basic_string_view<Sch> const & source)
         {
-            if (size == 0) return {}; // No need to allocate.
-            Ch *result = allocate_aligned<Ch>(size);
-            if (source)
-                for (std::size_t i = 0; i < size; ++i)
-                    result[i] = source[i];
-            return {result, size};
-        }
-
-        template<typename Sch>
-        std::span<Ch> allocate_span(std::basic_string_view<Sch> const & source) {
-            return allocate_span(source.data(), source.size());
-        }
-
-        template<typename Sch>
-        view_type allocate_string(const Sch *source, std::size_t size) {
-            auto span = allocate_span(source, size);
-            return {span.data(), span.size()};
+            if (source.size() == 0) return {}; // No need to allocate.
+            Ch *result = allocate_aligned<Ch>(source.size());
+            for (std::size_t i = 0; i < source.size(); ++i)
+                result[i] = source[i];
+            return {result, source.size()};
         }
 
         template<typename Sch>
         view_type allocate_string(std::basic_string_view<Sch> const & source) {
-            return allocate_string(source.data(), source.size());
+            auto span = allocate_span(source);
+            return {span.data(), span.size()};
         }
 
         template<typename Sch>
         view_type allocate_string(std::basic_string<Sch> const & source) {
-            return allocate_string(source.data(), source.size());
+            return allocate_string(std::basic_string_view{source.data(), source.size()});
         }
 
         template<typename Sch>
