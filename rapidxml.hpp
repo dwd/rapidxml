@@ -14,6 +14,7 @@
     #include <cassert>      // For assert
     #include <new>          // For placement new
     #include <string>
+    #include <span>
     #include <optional>
     #include <memory>
 #endif
@@ -456,7 +457,7 @@ namespace rapidxml
         //! \param size Number of characters to allocate, or zero to calculate it automatically from source string length; if size is 0, source string must be specified and null terminated.
         //! \return Pointer to allocated char array. This pointer will never be NULL.
         template<typename Sch>
-        view_type allocate_string(const Sch *source, std::size_t size)
+        std::span<Ch> allocate_span(const Sch *source, std::size_t size)
         {
             if (size == 0) return {}; // No need to allocate.
             Ch *result = allocate_aligned<Ch>(size);
@@ -464,6 +465,17 @@ namespace rapidxml
                 for (std::size_t i = 0; i < size; ++i)
                     result[i] = source[i];
             return {result, size};
+        }
+
+        template<typename Sch>
+        std::span<Ch> allocate_span(std::basic_string_view<Sch> const & source) {
+            return allocate_span(source.data(), source.size());
+        }
+
+        template<typename Sch>
+        view_type allocate_string(const Sch *source, std::size_t size) {
+            auto span = allocate_span(source, size);
+            return {span.data(), span.size()};
         }
 
         template<typename Sch>
@@ -533,7 +545,7 @@ namespace rapidxml
         //! Any nodes or strings allocated from the pool will no longer be valid.
         void clear()
         {
-            while (m_begin != m_static_memory)
+            while (m_begin != m_static_memory.data())
             {
                 std::size_t s = sizeof(header) * 2;
                 void * h = m_begin;
@@ -561,9 +573,9 @@ namespace rapidxml
         //! </code><br>
         //! \param af Allocation function, or 0 to restore default function
         //! \param ff Free function, or 0 to restore default function
-        [[maybe_unused]] void set_allocator(alloc_func *af, free_func *ff)
+        [[maybe_unused]] void set_allocator(alloc_func af, free_func ff)
         {
-            assert(m_begin == m_static_memory && m_ptr == m_begin);    // Verify that no memory is allocated yet
+            assert(m_begin == m_static_memory.data() && m_ptr == m_begin);    // Verify that no memory is allocated yet
             m_alloc_func = af;
             m_free_func = ff;
         }
@@ -577,9 +589,9 @@ namespace rapidxml
 
         void init()
         {
-            m_begin = m_static_memory;
+            m_begin = m_static_memory.data();
             m_ptr = m_begin;
-            m_space = sizeof(m_static_memory);
+            m_space = m_static_memory.size();
         }
 
         void *allocate_raw(std::size_t size)
@@ -642,7 +654,7 @@ namespace rapidxml
         void *m_begin = nullptr;                                      // Start of raw memory making up current pool
         void *m_ptr = nullptr;                                        // First free byte in current pool
         std::size_t m_space = RAPIDXML_STATIC_POOL_SIZE;                                        // Available space remaining
-        char m_static_memory[RAPIDXML_STATIC_POOL_SIZE] = {};    // Static raw memory
+        std::array<char, RAPIDXML_STATIC_POOL_SIZE> m_static_memory = {};    // Static raw memory
         alloc_func m_alloc_func = nullptr;                           // Allocator function, or 0 if default is to be used
         free_func m_free_func = nullptr;                             // Free function, or 0 if default is to be used
         view_type m_nullstr;
@@ -667,8 +679,8 @@ namespace rapidxml
         // Construction & destruction
 
         // Construct a base with empty name, value and parent
-        xml_base() {}
-        xml_base(view_type const & name) : m_name(name) {}
+        xml_base() = default;
+        explicit xml_base(view_type const & name) : m_name(name) {}
         xml_base(view_type const & name, view_type const & value) : m_name(name), m_value(value) {}
 
         ///////////////////////////////////////////////////////////////////////////
@@ -1708,7 +1720,7 @@ namespace rapidxml
 
         template<int Flags>
         view_type decode_data_value_low(view_type const & v) {
-            auto * init = const_cast<Ch *>(v.data());
+            auto * init = v.data();
             auto * first = init;
             if (Flags & parse_normalize_whitespace) {
                 skip<text_pure_with_ws_pred,0>(first);
@@ -1716,8 +1728,8 @@ namespace rapidxml
                 skip<text_pure_no_ws_pred,0>(first);
             }
             if (*first == '<') return v;
-            auto buf = this->allocate_string(v);
-            auto * start = const_cast<Ch *>(buf.data());
+            auto buf = this->allocate_span(v);
+            auto * start = buf.data();
             auto * tmp = start;
             auto * end = (Flags & parse_normalize_whitespace) ?
                     skip_and_expand_character_refs<text_pred,text_pure_with_ws_pred,Flags>(tmp) :
@@ -1744,12 +1756,12 @@ namespace rapidxml
 
         template<Ch Q>
         view_type decode_attr_value_low(view_type const & v) {
-            Ch * init = const_cast<Ch *>(v.data());
-            Ch * first = init;
+            Ch const * init = v.data();
+            Ch const * first = init;
             skip<attribute_value_pure_pred<Q>,0>(first);
             if (*first == Q) return v;
-            auto buf = this->allocate_string(v);
-            Ch * start = const_cast<Ch *>(buf.data());
+            auto buf = this->allocate_span(v);
+            Ch * start = buf.data();
             Ch * tmp = start;
             Ch * end = skip_and_expand_character_refs<attribute_value_pred<Q>,attribute_value_pure_pred<Q>,0>(tmp);
             return {start, end};
