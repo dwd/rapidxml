@@ -109,8 +109,7 @@ namespace rapidxml
     class validation_error : public std::runtime_error
     {
     public:
-        explicit validation_error(const char * what)
-            : std::runtime_error(what) {}
+        using std::runtime_error::runtime_error;
     };
 
     class xmlns_unbound : public validation_error {
