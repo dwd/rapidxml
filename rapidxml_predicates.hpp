@@ -333,9 +333,9 @@ namespace rapidxml {
             return parse(internal::xmlns_empty, sv);
         }
 
-        xpath(std::map<std::string,std::string> & xmlns) : m_xmlns(xmlns) {}
+        explicit xpath(std::map<std::string,std::string> & xmlns) : m_xmlns(xmlns) {}
 
-        rapidxml::generator<xml_node<Ch> &> all(xml_node<Ch> & current, int depth = 0) {
+        rapidxml::generator<xml_node<Ch> &> all(xml_node<Ch> & current, unsigned int depth = 0) {
             if (depth >= m_chain.size()) throw std::logic_error("Depth exceeded");
             auto & xp = m_chain[depth];
             depth++;

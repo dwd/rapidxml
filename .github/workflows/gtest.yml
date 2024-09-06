@@ -35,15 +35,15 @@ jobs:
       - name: Make build directory
         run: mkdir gtest-build
       - name: CMake
-        run: cmake -S . -B gtest-build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-Werror --coverage -g -O0"
+        run: cmake -S . -B gtest-build -DCMAKE_BUILD_TYPE=Debug
       - name: Build Wrapper
         run: build-wrapper-linux-x86-64 --out-dir sonar-out cmake --build gtest-build
       - name: Run Tests
-        run: ./gtest-build/rapidxml-test
+        run: cd ./gtest-build && ./rapidxml-test
       - name: Show coverage
-        run: gcovr
+        run: cd ./gtest-build && gcovr -r ..
       - name: Collate coverage
-        run: gcovr --sonarqube >coverage.xml
+        run: cd ./gtest-build && gcovr -r .. --sonarqube >coverage.xml
       - name: Sonar Scanner
         run: sonar-scanner --define sonar.cfamily.compile-commands=sonar-out/compile_commands.json --define sonar.coverageReportPath=coverage.xml
         env:
