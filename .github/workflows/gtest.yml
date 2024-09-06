@@ -23,18 +23,29 @@ jobs:
         run: sudo apt-get update
       - name: Install libcurl
         run: sudo apt-get install libcurl4-openssl-dev
+      - name: Set up Python 3.8 for gcovr
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+      - name: install gcovr 5.0
+        run: |
+          pip install gcovr==5.0 # 5.1 is not supported
       - name: SonarQube install
         uses: SonarSource/sonarcloud-github-c-cpp@v3
       - name: Make build directory
         run: mkdir gtest-build
       - name: CMake
-        run: cmake -S . -B gtest-build -DCMAKE_BUILD_TYPE=Debug -DCMAKE-CXX_FLAGS=-Werror
+        run: cmake -S . -B gtest-build -DCMAKE_BUILD_TYPE=Debug
       - name: Build Wrapper
         run: build-wrapper-linux-x86-64 --out-dir sonar-out cmake --build gtest-build
+      - name: Run Tests
+        run: cd ./gtest-build && ./rapidxml-test
+      - name: Show coverage
+        run: cd ./gtest-build && gcovr -r ..
+      - name: Collate coverage
+        run: cd ./gtest-build && gcovr -r .. --sonarqube >../coverage.xml
       - name: Sonar Scanner
-        run: sonar-scanner --define sonar.cfamily.compile-commands=sonar-out/compile_commands.json
+        run: sonar-scanner --define sonar.cfamily.compile-commands=sonar-out/compile_commands.json --define sonar.coverageReportPaths=coverage.xml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      - name: Run Tests
-        run: cd gtest-build && ./rapidxml-test

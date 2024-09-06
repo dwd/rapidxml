@@ -30,7 +30,7 @@ namespace rapidxml {
 
             bool do_match(const xml_node<Ch> & t) override {
                 if (m_xmlns.has_value() && t.xmlns() != m_xmlns.value()) return false;
-                return (t.type() == node_element) && (t.name() == m_name || m_name == "*");
+                return (t.type() == node_type::node_element) && (t.name() == m_name || m_name == "*");
             }
         };
 
@@ -43,7 +43,7 @@ namespace rapidxml {
                     : xpath_base<Ch>(), m_value(v) {}
 
             bool do_match(const xml_node<Ch> & t) override {
-                return (t.type() == node_element) && (t.value() == m_value);
+                return (t.type() == node_type::node_element) && (t.value() == m_value);
             }
         };
 
@@ -56,7 +56,7 @@ namespace rapidxml {
                     : xpath_base<Ch>(), m_xmlns(v) {}
 
             bool do_match(const xml_node<Ch> & t) override {
-                return (t.type() == node_element) && (t.xmlns() == m_xmlns);
+                return (t.type() == node_type::node_element) && (t.xmlns() == m_xmlns);
             }
         };
 
@@ -74,7 +74,7 @@ namespace rapidxml {
                     : xpath_base<Ch>(), m_name(n), m_value(v), m_xmlns(x) {}
 
             bool do_match(const xml_node<Ch> & t) override {
-                if (t.type() != node_element) return false;
+                if (t.type() != node_type::node_element) return false;
                 for (auto const & attr : t.attributes()) {
                     if (m_xmlns.has_value()) {
                         if (m_name == "*" || attr.local_name() != m_name) continue;
@@ -100,7 +100,7 @@ namespace rapidxml {
             }
 
             bool do_match(const xml_node<Ch> & t) override {
-                return t.type() == node_document || t.type() == node_element;
+                return t.type() == node_type::node_document || t.type() == node_type::node_element;
             }
         };
 
@@ -117,7 +117,7 @@ namespace rapidxml {
             }
 
             bool do_match(const xml_node<Ch> & t) override {
-                return t.type() == node_document || t.type() == node_element;
+                return t.type() == node_type::node_document || t.type() == node_type::node_element;
             }
         };
 
@@ -333,9 +333,9 @@ namespace rapidxml {
             return parse(internal::xmlns_empty, sv);
         }
 
-        xpath(std::map<std::string,std::string> & xmlns) : m_xmlns(xmlns) {}
+        explicit xpath(std::map<std::string,std::string> & xmlns) : m_xmlns(xmlns) {}
 
-        rapidxml::generator<xml_node<Ch> &> all(xml_node<Ch> & current, int depth = 0) {
+        rapidxml::generator<xml_node<Ch> &> all(xml_node<Ch> & current, unsigned int depth = 0) {
             if (depth >= m_chain.size()) throw std::logic_error("Depth exceeded");
             auto & xp = m_chain[depth];
             depth++;

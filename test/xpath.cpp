@@ -83,7 +83,7 @@ TEST(XPathFirst, simple_all) {
     auto xp = rapidxml::xpath<>::parse(sv);
     auto r =  xp->first(doc);
     ASSERT_TRUE(r);
-    EXPECT_EQ(r->type(), rapidxml::node_document);
+    EXPECT_EQ(r->type(), rapidxml::node_type::node_document);
 }
 
 TEST(XPathFirst, simple_any) {

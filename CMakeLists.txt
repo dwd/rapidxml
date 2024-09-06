@@ -39,6 +39,7 @@ add_executable(rapidxml-test
         test/xpath.cpp
         rapidxml_generator.hpp
         test/main.cc
+        rapidxml_predicates.hpp
 )
 target_link_libraries(rapidxml-test PRIVATE
         GTest::gtest
@@ -51,6 +52,8 @@ target_include_directories(rapidxml-test
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
+target_compile_options(rapidxml-test PRIVATE -Werror -Wall --coverage -g -O0)
+target_link_options(rapidxml-test PRIVATE --coverage -g)
 if (RAPIDXML_PERF_TESTS)
     message("Running performance tests")
     file(DOWNLOAD https://www.w3.org/TR/xml/REC-xml-20081126.xml ${CMAKE_CURRENT_BINARY_DIR}/REC-xml-20081126.xml)
