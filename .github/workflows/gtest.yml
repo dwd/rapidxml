@@ -43,7 +43,7 @@ jobs:
       - name: Show coverage
         run: cd ./gtest-build && gcovr -r ..
       - name: Collate coverage
-        run: cd ./gtest-build && gcovr -r .. --sonarqube >coverage.xml
+        run: cd ./gtest-build && gcovr -r .. --sonarqube >../coverage.xml
       - name: Sonar Scanner
         run: sonar-scanner --define sonar.cfamily.compile-commands=sonar-out/compile_commands.json --define sonar.coverageReportPath=coverage.xml
         env:
