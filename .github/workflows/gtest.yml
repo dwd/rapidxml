@@ -43,7 +43,7 @@ jobs:
       - name: Collate coverage
         run: gcovr --sonarqube >coverage.xml
       - name: Sonar Scanner
-        run: sonar-scanner --define sonar.cfamily.compile-commands=sonar-out/compile_commands.json --define sonar.coverageReportPaths=coverage.xml
+        run: sonar-scanner --define sonar.cfamily.compile-commands=sonar-out/compile_commands.json --define sonar.coverageReportPath=coverage.xml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
