@@ -35,7 +35,7 @@ jobs:
       - name: Make build directory
         run: mkdir gtest-build
       - name: CMake
-        run: cmake -S . -B gtest-build -DCMAKE_BUILD_TYPE=Debug -DCMAKE-CXX_FLAGS="-Werror --coverage"
+        run: cmake -S . -B gtest-build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-Werror --coverage"
       - name: Build Wrapper
         run: build-wrapper-linux-x86-64 --out-dir sonar-out cmake --build gtest-build
       - name: Run Tests
