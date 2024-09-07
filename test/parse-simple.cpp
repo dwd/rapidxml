@@ -31,6 +31,8 @@ TEST(Parser, DefaultElementNS) {
     EXPECT_EQ(child->name(), "child");
     EXPECT_EQ(child->xmlns(), "this");
     doc.validate();
+    auto no_node = child->next_sibling();
+    EXPECT_THROW(no_node->xmlns(), rapidxml::no_such_node);
 }
 
 TEST(Parser, UnboundPrefix) {
