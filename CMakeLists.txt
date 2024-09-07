@@ -40,6 +40,7 @@ add_executable(rapidxml-test
         rapidxml_generator.hpp
         test/main.cc
         rapidxml_predicates.hpp
+        rapidxml_tables.hpp
 )
 target_link_libraries(rapidxml-test PRIVATE
         GTest::gtest
