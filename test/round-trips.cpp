@@ -63,6 +63,10 @@ TEST(RoundTrip, SimpleMod) {
     EXPECT_EQ(check->name(), name);
     EXPECT_EQ(check->name().data(), name.data());
     EXPECT_EQ(output3, "<pfx:simple xmlns:pfx=\"this\"><this>the other</this><this>another&apos;</this><odd>the other</odd><this xmlns=\"that\">the other</this><pfx:that>the other</pfx:that><this>last time</this></pfx:simple>");
+    rapidxml::xml_document<> doc2;
+    doc2.clone_node(doc.first_node(), true);
+    auto output4 = print(doc);
+    EXPECT_EQ(output3, output4);
 }
 
 TEST(RoundTrip, SimpleApos) {
