@@ -370,8 +370,6 @@ namespace rapidxml
             // Print proper node type
             switch (node->type())
             {
-                using enum node_type;
-
             // Document
             case node_document:
                 out = print_children(out, node, flags, indent);
