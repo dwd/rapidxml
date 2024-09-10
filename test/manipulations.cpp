@@ -17,7 +17,7 @@ namespace {
 
 TEST(Create, Node) {
     rapidxml::xml_document<> doc;
-    auto node = doc.allocate_node(rapidxml::node_type::node_element, "fish", "cakes");
+    auto node = doc.allocate_node(rapidxml::node_element, "fish", "cakes");
     doc.append_node(node);
 
     EXPECT_EQ(
@@ -28,7 +28,7 @@ TEST(Create, Node) {
 
 TEST(Create, NodeEmpty) {
     rapidxml::xml_document<> doc;
-    auto node = doc.allocate_node(rapidxml::node_type::node_element, "fish");
+    auto node = doc.allocate_node(rapidxml::node_element, "fish");
     doc.append_node(node);
 
     EXPECT_EQ(
@@ -39,7 +39,7 @@ TEST(Create, NodeEmpty) {
 
 TEST(Create, Node2) {
     rapidxml::xml_document<> doc;
-    auto node = doc.allocate_node(rapidxml::node_type::node_element, "fish", "cakes");
+    auto node = doc.allocate_node(rapidxml::node_element, "fish", "cakes");
     doc.append_node(node);
 
     EXPECT_EQ(
@@ -56,7 +56,7 @@ std::string const & fn() {
 
 TEST(Create, NodeAttr) {
     rapidxml::xml_document<> doc;
-    auto node = doc.allocate_node(rapidxml::node_type::node_element, "fish", "cakes");
+    auto node = doc.allocate_node(rapidxml::node_element, "fish", "cakes");
     auto haddock = doc.allocate_attribute("id", "haddock");
     node->append_attribute(haddock);
     doc.append_node(node);

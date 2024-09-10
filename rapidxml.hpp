@@ -176,6 +176,7 @@ namespace rapidxml
         node_pi,            //!< A PI node. Name contains target. Value contains instructions.
 	    node_literal        //!< Value is unencoded text (used for inserting pre-rendered XML).
     };
+    using enum node_type; // Import this into the rapidxml namespace as before.
 
     ///////////////////////////////////////////////////////////////////////
     // Parsing flags
@@ -871,8 +872,6 @@ namespace rapidxml
     template<typename Ch = char>
     class xml_node: public xml_base<Ch>
     {
-        using enum node_type;
-
     public:
         using view_type = std::basic_string_view<Ch>;
         using ptr = optional_ptr<xml_node<Ch>>;
@@ -1594,8 +1593,6 @@ namespace rapidxml
     template<class Ch = char>
     class xml_document: public xml_node<Ch>, public memory_pool<Ch>
     {
-        using enum node_type;
-
     public:
         using view_type = std::basic_string_view<Ch>;
         using ptr = optional_ptr<xml_document<Ch>>;
