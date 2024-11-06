@@ -35,31 +35,31 @@ TEST(PredicateBuffer, Skip) {
 TEST(Predicates, SkipAndExpand) {
     std::string test_data{"&hello;<"};
     char * start = const_cast<char *>(test_data.c_str());
-    start = rapidxml::xml_document<>::skip_and_expand_character_refs<
+    auto end = rapidxml::xml_document<>::skip_and_expand_character_refs<
             rapidxml::xml_document<>::text_pred,
             rapidxml::xml_document<>::text_pure_with_ws_pred,
             rapidxml::parse_no_entity_translation>(start);
-    EXPECT_EQ(*start, '<');
+    EXPECT_EQ(*end, '<');
 }
 
 TEST(Predicates, SkipAndExpandShort) {
     std::string test_data{"&hello;"};
     char * start = const_cast<char *>(test_data.c_str());
-    start = rapidxml::xml_document<>::skip_and_expand_character_refs<
+    auto end = rapidxml::xml_document<>::skip_and_expand_character_refs<
             rapidxml::xml_document<>::text_pred,
             rapidxml::xml_document<>::text_pure_with_ws_pred,
             rapidxml::parse_no_entity_translation>(start);
-    EXPECT_EQ(*start, '\0');
+    EXPECT_EQ(*end, '\0');
 }
 
 TEST(Predicates, SkipAndExpandShorter) {
     std::string test_data{"&hell"};
     char * start = const_cast<char *>(test_data.c_str());
-    start = rapidxml::xml_document<>::skip_and_expand_character_refs<
+    auto end = rapidxml::xml_document<>::skip_and_expand_character_refs<
             rapidxml::xml_document<>::text_pred,
             rapidxml::xml_document<>::text_pure_with_ws_pred,
             rapidxml::parse_no_entity_translation>(start);
-    EXPECT_EQ(*start, '\0');
+    EXPECT_EQ(*end, '\0');
 }
 
 TEST(ParseFns, ParseBom) {
