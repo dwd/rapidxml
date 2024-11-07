@@ -1679,18 +1679,17 @@ namespace rapidxml
 
         template<int Flags>
         view_type decode_data_value_low(view_type const & v) {
-            auto * init = v.data();
-            auto * first = init;
+            buffer_ptr first{v};
             if (Flags & parse_normalize_whitespace) {
                 skip<text_pure_with_ws_pred,0>(first);
             } else {
                 skip<text_pure_no_ws_pred,0>(first);
             }
-            if (*first == '<') return v;
-            auto buf = this->allocate_span(v);
+            if (!*first) return v;
+            auto buf = this->allocate_string(v);
             auto * start = buf.data();
-            auto * tmp = start;
-            auto * end = (Flags & parse_normalize_whitespace) ?
+            buffer_ptr tmp{buf};
+            auto end = (Flags & parse_normalize_whitespace) ?
                     skip_and_expand_character_refs<text_pred,text_pure_with_ws_pred,Flags>(tmp) :
                     skip_and_expand_character_refs<text_pred,text_pure_no_ws_pred,Flags>(tmp);
             // Trim trailing whitespace if flag is set; leading was already trimmed by whitespace skip after >
@@ -1715,14 +1714,13 @@ namespace rapidxml
 
         template<Ch Q>
         view_type decode_attr_value_low(view_type const & v) {
-            Ch const * init = v.data();
-            Ch const * first = init;
+            buffer_ptr first{v};
             skip<attribute_value_pure_pred<Q>,0>(first);
-            if (*first == Q) return v;
-            auto buf = this->allocate_span(v);
-            Ch * start = buf.data();
-            Ch * tmp = start;
-            Ch * end = skip_and_expand_character_refs<attribute_value_pred<Q>,attribute_value_pure_pred<Q>,0>(tmp);
+            if (!*first || *first == Q) return v;
+            auto buf = this->allocate_string(v);
+            const Ch * start = buf.data();
+            buffer_ptr tmp{buf};
+            const Ch * end = skip_and_expand_character_refs<attribute_value_pred<Q>,attribute_value_pure_pred<Q>,0>(tmp);
             return {start, end};
         }
 
@@ -1922,8 +1920,8 @@ namespace rapidxml
         // Skip characters until predicate evaluates to true while doing the following:
         // - replacing XML character entity references with proper characters (&apos; &amp; &quot; &lt; &gt; &#...;)
         // - condensing whitespace sequences to single space character
-        template<class StopPred, class StopPredPure, int Flags>
-        static Ch *skip_and_expand_character_refs(Ch *&text)
+        template<class StopPred, class StopPredPure, int Flags, typename Chp>
+        static const Ch *skip_and_expand_character_refs(Chp text)
         {
             // If entity translation, whitespace condense and whitespace trimming is disabled, use plain skip
             if (Flags & parse_no_entity_translation &&
@@ -1931,15 +1929,15 @@ namespace rapidxml
                 !(Flags & parse_trim_whitespace))
             {
                 skip<StopPred, Flags>(text);
-                return text;
+                return &*text;
             }
 
             // Use simple skip until first modification is detected
             skip<StopPredPure, Flags>(text);
 
             // Use translation skip
-            Ch *src = text;
-            Ch *dest = src;
+            Chp src = text;
+            Ch * dest = const_cast<Ch *>(&*src);
             while (StopPred::test(*src))
             {
                 // If entity translation is enabled
@@ -2063,9 +2061,7 @@ namespace rapidxml
             }
 
             // Return new end
-            text = src;
             return dest;
-
         }
 
         ///////////////////////////////////////////////////////////////////////

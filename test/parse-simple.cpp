@@ -264,3 +264,42 @@ TEST(ParseOptions, OpenOnlyFastest) {
         subdoc.validate();
     }
 }
+
+TEST(Parser_Emoji, Single) {
+    std::string foo{"<h>&apos;</h>"};
+    rapidxml::xml_document<> doc;
+    doc.parse<rapidxml::parse_default>(foo);
+    EXPECT_EQ("'", doc.first_node()->value());
+}
+
+TEST(Parser_Emoji, SingleUni) {
+    std::string foo{"<h>&#1234;</h>"};
+    rapidxml::xml_document<> doc;
+    doc.parse<rapidxml::parse_default>(foo);
+    EXPECT_EQ("\xD3\x92", doc.first_node()->value());
+}
+
+TEST(Parser_Emoji, SingleEmoji) {
+    std::string foo{"<h>&#128512;</h>"};
+    rapidxml::xml_document<> doc;
+    doc.parse<rapidxml::parse_default>(foo);
+    EXPECT_EQ("\xF0\x9F\x98\x80", doc.first_node()->value());
+    EXPECT_EQ(4, doc.first_node()->value().size());
+}
+
+TEST(Parser_Emoji, SingleEmojiReuse) {
+    std::string bar("<h>Sir I bear a rhyme excelling in mystic verse and magic spelling &#128512;</h>");
+    rapidxml::xml_document<> doc;
+    rapidxml::xml_document<> parent_doc;
+    parent_doc.parse<rapidxml::parse_default|rapidxml::parse_open_only>("<open>");
+    doc.parse<rapidxml::parse_default>(bar, &parent_doc);
+    EXPECT_EQ("Sir I bear a rhyme excelling in mystic verse and magic spelling \xF0\x9F\x98\x80", doc.first_node()->value());
+    auto doc_a = doc.first_node()->document();
+    doc.first_node()->value(doc_a->allocate_string("Sausages are the loneliest fruit, and are but one of the strange things I have witnessed in my long and interesting life."));
+    EXPECT_EQ("Sausages are the loneliest fruit, and are but one of the strange things I have witnessed in my long and interesting life.", doc.first_node()->value());
+    bar = "<h>&#128512;</h>";
+    doc.parse<rapidxml::parse_default>(bar, &parent_doc);
+    EXPECT_EQ("\xF0\x9F\x98\x80", doc.first_node()->value());
+    EXPECT_EQ(4, doc.first_node()->value().size());
+}
+
