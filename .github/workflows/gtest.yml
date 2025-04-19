@@ -28,9 +28,9 @@ jobs:
       - name: Create package
         run: conan create .
       - name: Conan deps for tests
-        run: cd test && conan install . --output-folder=gh-build -s build_type=Debug -s compiler.cppstd=gnu23 -b missing
+        run: cd test && conan install . --output-folder=. -s build_type=Debug -s compiler.cppstd=gnu23 -b missing
       - name: CMake tests
-        run: cd test && cmake -B gh-build -DCMAKE_TOOLCHAIN_FILE=gh-build/conan_toolchain.cmake
+        run: cd test && cmake -B gh-build
       - name: Build Wrapper
         run: cd test && build-wrapper-linux-x86-64 --out-dir sonar-out cmake --build gh-build
       - name: Sonar Scanner
