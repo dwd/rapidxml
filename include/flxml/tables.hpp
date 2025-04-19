@@ -12,7 +12,7 @@
 // Internals
 
 //! \cond internal
-namespace rapidxml::internal {
+namespace flxml::internal {
 
     // Struct that contains lookup tables for the parser
     struct lookup_tables {

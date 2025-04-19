@@ -9,7 +9,7 @@
 #include <numeric>
 #include <stdexcept>
 
-namespace rapidxml {
+namespace flxml {
     // Most of rapidxml was written to use a NUL-terminated Ch * for parsing.
     // This utility struct wraps a buffer to provide something that
     // looks mostly like a pointer, deferencing to NUL when it hits the end.

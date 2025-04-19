@@ -8,7 +8,7 @@
 #include <coroutine>
 #include <iterator>
 
-namespace rapidxml {
+namespace flxml {
     template<typename T>
     class generator {
     public:
