@@ -37,7 +37,7 @@ jobs:
         run: pip install conan
       - name: Configure Conan Profile
         run: |
-          conan profile detect
+          conan profile detect -e
           conan remote add conan-nexus https://nexus.cridland.io/repository/dwd-conan
           conan remote login conan-nexus ci --password ${{ secrets.NEXUS_PASSWORD }}
       - name: Conan Deps
