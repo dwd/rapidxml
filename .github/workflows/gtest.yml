@@ -21,15 +21,12 @@ jobs:
       - name: Configure Conan Profile
         run: |
           conan profile detect
-          conan profile update settings.compiler=gcc default
-          conan profile update settings.compiler.version=12 default
-          conan profile update settings.compiler.cppstd=23 default
       - name: Conan Deps
-        run: conan install . --output-folder=gh-build -s build_type=Debug  -b missing
+        run: conan install . --output-folder=gh-build -s build_type=Debug -s compiler.cppstd=gnu23  -b missing
       - name: Create package
         run: conan create .
       - name: Conan deps for tests
-        run: cd tests && conan install . --output-folder=gh-build -s build_type=Debug -b missing
+        run: cd tests && conan install . --output-folder=gh-build -s build_type=Debug -s compiler.cppstd=gnu23 -b missing
       - name: CMake tests
         run: cd tests && cmake -B gh-build -DCMAKE_TOOLCHAIN_FILE=gh-build/conan_toolchain.cmake
       - name: Build Wrapper
