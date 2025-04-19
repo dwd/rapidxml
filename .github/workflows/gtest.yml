@@ -12,6 +12,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Figure out version
+        id: tag
+        run: |
+          TAG=$(git describe --tags --abbrev=0)
+          COMMITS_SINCE_TAG=$(git rev-list ${TAG}..HEAD --count)
+          if [ "${COMMITS_SINCE_TAG}" -eq 0 ]; then
+            echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          else
+            echo "VERSION="$(git describe --tags --abbrev=8) >> $GITHUB_ENV
+          fi
       - name: Cache Conan2 dependencies
         uses: actions/cache@v3
         with:
@@ -31,11 +41,11 @@ jobs:
           conan remote add conan-nexus https://nexus.cridland.io/repository/dwd-conan
           conan remote login conan-nexus ci --password ${{ secrets.NEXUS_PASSWORD }}
       - name: Conan Deps
-        run: conan install . --output-folder=gh-build -s build_type=Debug -s compiler.cppstd=gnu23  -b missing
+        run: conan install . --output-folder=gh-build -s build_type=Debug -s compiler.cppstd=gnu23  -b missing --vgersion={{steps.tag.outputs.version }}
       - name: Create package
-        run: conan create .
+        run: conan create . --version={{steps.tag.outputs.version }}
       - name: Conan deps for tests
-        run: cd test && conan install . --output-folder=. -s build_type=Debug -s compiler.cppstd=gnu23 -b missing
+        run: cd test && conan install . --output-folder=. -s build_type=Debug -s compiler.cppstd=gnu23 -b missing --version={{steps.tag.outputs.version }}
       - name: CMake tests
         run: cd test && cmake -B gh-build -DCMAKE_BUILD_TYPE=Debug
       - name: Build Wrapper

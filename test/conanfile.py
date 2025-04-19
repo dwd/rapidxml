@@ -3,7 +3,6 @@ from conan.tools.cmake import CMakeToolchain, CMake, CMakeDeps
 
 class FLXML(ConanFile):
     name = "flxml-test"
-    version = "2.1.0"
     settings = "os", "compiler", "build_type", "arch"
     test_type = "explicit"
 

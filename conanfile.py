@@ -3,7 +3,6 @@ from conan.tools.files import copy
 
 class FLXML(ConanFile):
     name = "flxml"
-    version = "2.1.0"
     exports_sources = "include/*"
     no_copy_source = True
 
