@@ -38,7 +38,7 @@ jobs:
       - name: Configure Conan Profile
         run: |
           conan profile detect -e
-          conan remote add conan-nexus https://nexus.cridland.io/repository/dwd-conan
+          conan remote add conan-nexus https://nexus.cridland.io/repository/dwd-conan --force
           conan remote login conan-nexus ci --password ${{ secrets.NEXUS_PASSWORD }}
       - name: Conan Deps
         run: conan install . --output-folder=gh-build -s build_type=Debug -s compiler.cppstd=gnu23  -b missing --vgersion={{steps.tag.outputs.version }}
