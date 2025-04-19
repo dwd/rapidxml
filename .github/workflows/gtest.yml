@@ -21,22 +21,24 @@ jobs:
       - name: Configure Conan Profile
         run: |
           conan profile detect
+          conan remote add conan-nexus https://nexus.cridland.io/repository/dwd-conan
+          conan remote login conan-nexus ci --password ${{ secrets.NEXUS_PASSWORD }}
       - name: Conan Deps
         run: conan install . --output-folder=gh-build -s build_type=Debug -s compiler.cppstd=gnu23  -b missing
       - name: Create package
         run: conan create .
       - name: Conan deps for tests
-        run: cd tests && conan install . --output-folder=gh-build -s build_type=Debug -s compiler.cppstd=gnu23 -b missing
+        run: cd test && conan install . --output-folder=gh-build -s build_type=Debug -s compiler.cppstd=gnu23 -b missing
       - name: CMake tests
-        run: cd tests && cmake -B gh-build -DCMAKE_TOOLCHAIN_FILE=gh-build/conan_toolchain.cmake
+        run: cd test && cmake -B gh-build -DCMAKE_TOOLCHAIN_FILE=gh-build/conan_toolchain.cmake
       - name: Build Wrapper
-        run: cd tests && build-wrapper-linux-x86-64 --out-dir sonar-out cmake --build gh-build
+        run: cd test && build-wrapper-linux-x86-64 --out-dir sonar-out cmake --build gh-build
       - name: Sonar Scanner
-        run: cd tests && sonar-scanner --define sonar.cfamily.compile-commands=sonar-out/compile_commands.json
+        run: cd test && sonar-scanner --define sonar.cfamily.compile-commands=sonar-out/compile_commands.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - name: Upload
-        run: conan upload -r nexus 'flxml/*'
+        run: conan upload -r conan-nexus 'flxml/*'
       - name: Run Tests
         run: cd gtest-build && ./rapidxml-test
