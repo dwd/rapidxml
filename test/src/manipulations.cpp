@@ -4,20 +4,20 @@
 
 #include <gtest/gtest.h>
 
-#include "rapidxml.hpp"
-#include "rapidxml_print.hpp"
+#include <flxml.h>
+#include <flxml/print.h>
 
 namespace {
-    auto print(rapidxml::xml_document<> & doc) {
+    auto print(flxml::xml_document<> & doc) {
         std::string output;
-        rapidxml::print(std::back_inserter(output), *doc.first_node());
+        flxml::print(std::back_inserter(output), *doc.first_node());
         return output;
     }
 }
 
 TEST(Create, Node) {
-    rapidxml::xml_document<> doc;
-    auto node = doc.allocate_node(rapidxml::node_element, "fish", "cakes");
+    flxml::xml_document<> doc;
+    auto node = doc.allocate_node(flxml::node_element, "fish", "cakes");
     doc.append_node(node);
 
     EXPECT_EQ(
@@ -27,8 +27,8 @@ TEST(Create, Node) {
 }
 
 TEST(Create, NodeEmpty) {
-    rapidxml::xml_document<> doc;
-    auto node = doc.allocate_node(rapidxml::node_element, "fish");
+    flxml::xml_document<> doc;
+    auto node = doc.allocate_node(flxml::node_element, "fish");
     doc.append_node(node);
 
     EXPECT_EQ(
@@ -38,8 +38,8 @@ TEST(Create, NodeEmpty) {
 }
 
 TEST(Create, Node2) {
-    rapidxml::xml_document<> doc;
-    auto node = doc.allocate_node(rapidxml::node_element, "fish", "cakes");
+    flxml::xml_document<> doc;
+    auto node = doc.allocate_node(flxml::node_element, "fish", "cakes");
     doc.append_node(node);
 
     EXPECT_EQ(
@@ -55,8 +55,8 @@ std::string const & fn() {
 }
 
 TEST(Create, NodeAttr) {
-    rapidxml::xml_document<> doc;
-    auto node = doc.allocate_node(rapidxml::node_element, "fish", "cakes");
+    flxml::xml_document<> doc;
+    auto node = doc.allocate_node(flxml::node_element, "fish", "cakes");
     auto haddock = doc.allocate_attribute("id", "haddock");
     node->append_attribute(haddock);
     doc.append_node(node);
@@ -67,7 +67,7 @@ TEST(Create, NodeAttr) {
     );
 
     const std::string & s2 = fn();
-    const rapidxml::xml_attribute<>::view_type & sv{s2};
+    const flxml::xml_attribute<>::view_type & sv{s2};
 
     auto tuna = doc.allocate_attribute("not-id", fn());
     // These check that the same buffer is being used throughout, instead of creating temporaries.

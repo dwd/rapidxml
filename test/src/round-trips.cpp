@@ -3,14 +3,13 @@
 //
 
 #include <gtest/gtest.h>
-#include "rapidxml.hpp"
-#include "rapidxml_print.hpp"
-#include "rapidxml_iterators.hpp"
+#include <flxml.h>
+#include <flxml/print.h>
 
 namespace {
-    auto print(rapidxml::xml_document<> & doc) {
+    auto print(flxml::xml_document<> & doc) {
         std::string output;
-        rapidxml::print(std::back_inserter(output), doc, rapidxml::print_no_indenting);
+        flxml::print(std::back_inserter(output), doc, flxml::print_no_indenting);
         return output;
     }
 }
@@ -18,8 +17,8 @@ namespace {
 TEST(RoundTrip, Simple) {
     const char input[] = "<simple/>";
     std::vector<char> buffer{input, input + sizeof(input)};
-    rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_full>(buffer.data());
+    flxml::xml_document<> doc;
+    doc.parse<flxml::parse_full>(buffer.data());
     auto output = print(doc);
     // Have we parsed correctly?
     EXPECT_EQ(input, output);
@@ -30,8 +29,8 @@ TEST(RoundTrip, Simple) {
 TEST(RoundTrip, SimpleMod) {
     const char input[] = "<pfx:simple xmlns:pfx=\"this\"><pfx:that/></pfx:simple>";
     std::vector<char> buffer{input, input + sizeof(input)};
-    rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_full>(buffer.data());
+    flxml::xml_document<> doc;
+    doc.parse<flxml::parse_full>(buffer.data());
     auto output = print(doc);
     // Have we parsed correctly?
     EXPECT_EQ(input, output);
@@ -63,7 +62,7 @@ TEST(RoundTrip, SimpleMod) {
     EXPECT_EQ(check->name(), name);
     EXPECT_EQ(check->name().data(), name.data());
     EXPECT_EQ(output3, "<pfx:simple xmlns:pfx=\"this\"><this>the other</this><this>another&apos;</this><odd>the other</odd><this xmlns=\"that\">the other</this><pfx:that>the other</pfx:that><this>last time</this></pfx:simple>");
-    rapidxml::xml_document<> doc2;
+    flxml::xml_document<> doc2;
     doc2.clone_node(doc.first_node(), true);
     auto output4 = print(doc);
     EXPECT_EQ(output3, output4);
@@ -72,12 +71,12 @@ TEST(RoundTrip, SimpleMod) {
 TEST(RoundTrip, SimpleApos) {
     const char input[] = "<simple arg=\"'\"/>";
     std::vector<char> buffer{input, input + sizeof(input)};
-    rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_full>(buffer.data());
+    flxml::xml_document<> doc;
+    doc.parse<flxml::parse_full>(buffer.data());
     auto output = print(doc);
     // Have we parsed correctly?
-    rapidxml::xml_document<> doc2;
-    for (auto & child : rapidxml::children(doc)) {
+    flxml::xml_document<> doc2;
+    for (auto & child : flxml::children(doc)) {
         doc2.append_node(doc2.clone_node(&child, true));
     }
     EXPECT_EQ(input, print(doc2));
@@ -90,13 +89,13 @@ TEST(RoundTrip, SimpleApos2) {
     const char input[] = "<simple arg=\"&apos;\"/>";
     const char expected[] = "<simple arg=\"'\"/>";
     std::vector<char> buffer{input, input + sizeof(input)};
-    rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_full>(buffer.data());
+    flxml::xml_document<> doc;
+    doc.parse<flxml::parse_full>(buffer.data());
     auto output = print(doc);
     EXPECT_EQ(doc.first_node()->first_attribute()->value(), "'");
     // Have we parsed correctly?
-    rapidxml::xml_document<> doc2;
-    for (auto & child : rapidxml::children(doc)) {
+    flxml::xml_document<> doc2;
+    for (auto & child : flxml::children(doc)) {
         doc2.append_node(doc2.clone_node(&child, true));
     }
     EXPECT_EQ(expected, print(doc2));
@@ -109,14 +108,14 @@ TEST(RoundTrip, SimpleLtBody) {
     const char input[] = "<simple arg=\"&apos;\">&lt;</simple>";
     const char expected[] = "<simple arg=\"'\">&lt;</simple>";
     std::vector<char> buffer{input, input + sizeof(input)};
-    rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_full>(buffer.data());
+    flxml::xml_document<> doc;
+    doc.parse<flxml::parse_full>(buffer.data());
     auto output = print(doc);
     EXPECT_EQ(doc.first_node()->value(), "<");
     EXPECT_EQ(doc.first_node()->first_attribute()->value(), "'");
     // Have we parsed correctly?
-    rapidxml::xml_document<> doc2;
-    for (auto & child : rapidxml::children(doc)) {
+    flxml::xml_document<> doc2;
+    for (auto & child : flxml::children(doc)) {
         doc2.append_node(doc2.clone_node(&child, true));
     }
     EXPECT_EQ(expected, print(doc2));
@@ -130,8 +129,8 @@ TEST(RoundTrip, MutateBody) {
     const char expected[] = "<simple arg=\"'\">&lt;</simple>";
     const char expected2[] = "<simple arg=\"'\">new value</simple>";
     std::vector<char> buffer{input, input + sizeof(input)};
-    rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_full>(buffer.data());
+    flxml::xml_document<> doc;
+    doc.parse<flxml::parse_full>(buffer.data());
     auto output = print(doc);
     EXPECT_EQ(expected, output);
     // Have we mutated the underlying buffer?
@@ -146,11 +145,11 @@ TEST(RoundTrip, Everything) {
     const char input[] = "<?xml charset='utf-8' ?><!DOCTYPE ><simple arg=\"&apos;\"><!-- Comment here --></simple>";
     const char expected[] = "<?xml charset=\"utf-8\"?><!DOCTYPE ><simple arg=\"'\"><!-- Comment here --></simple>";
     std::vector<char> buffer{input, input + sizeof(input)};
-    rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_full>(buffer.data());
+    flxml::xml_document<> doc;
+    doc.parse<flxml::parse_full>(buffer.data());
     auto output = print(doc);
-    rapidxml::xml_document<> doc2;
-    for (auto & child : rapidxml::children(doc)) {
+    flxml::xml_document<> doc2;
+    for (auto & child : flxml::children(doc)) {
         doc2.append_node(doc2.clone_node(&child, true));
     }
     EXPECT_EQ(expected, print(doc2));
@@ -164,12 +163,12 @@ TEST(RoundTrip, EverythingStream) {
     const char input[] = "<?xml charset='utf-8' ?><!DOCTYPE ><simple arg=\"&apos;\"><!-- Comment here --></simple>";
     const char expected[] = "<?xml charset=\"utf-8\"?>\n<!DOCTYPE >\n<simple arg=\"'\">\n\t<!-- Comment here -->\n</simple>\n\n";
     std::vector<char> buffer{input, input + sizeof(input) - 1};
-    rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_full>(buffer);
+    flxml::xml_document<> doc;
+    doc.parse<flxml::parse_full>(buffer);
     std::stringstream ss1;
     ss1 << doc;
     auto output = ss1.str();
-    rapidxml::xml_document<> doc2;
+    flxml::xml_document<> doc2;
     for (auto & child : doc.children()) {
         doc2.append_node(doc2.clone_node(&child, true));
     }

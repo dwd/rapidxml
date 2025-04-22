@@ -6,12 +6,12 @@
 #include <list>
 #include <algorithm>
 #include <ranges>
-#include "rapidxml.hpp"
+#include <flxml.h>
 
 TEST(Iterators, Nodes) {
     std::string xml = "<children><one/><two/><three/></children>";
-    rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_full>(xml);
+    flxml::xml_document<> doc;
+    doc.parse<flxml::parse_full>(xml);
     int i = 0;
     for (auto & child : doc.first_node()->children()) {
         ++i;
@@ -32,8 +32,8 @@ TEST(Iterators, Nodes) {
 
 TEST(Iterators, Attributes) {
     std::string xml = R"(<children one="1" two="2" three="3"/>)";
-    rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_full>(xml);
+    flxml::xml_document<> doc;
+    doc.parse<flxml::parse_full>(xml);
     int i = 0;
     for (auto & child : doc.first_node()->attributes()) {
         ++i;
@@ -54,8 +54,8 @@ TEST(Iterators, Attributes) {
 
 TEST(Predicates, Nodes) {
     std::string xml = "<children><one/><two/><three/></children>";
-    rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_full>(xml);
+    flxml::xml_document<> doc;
+    doc.parse<flxml::parse_full>(xml);
     auto r = doc.first_node()->children();
     for (auto const & child : r | std::ranges::views::filter([](auto const & n) { return n.name() == "two"; })) {
         EXPECT_EQ(child.name(), "two");
@@ -68,9 +68,9 @@ TEST(Predicates, Nodes) {
 
 TEST(Predicates, AllNodes) {
     std::string xml = "<children><one><two/></one><three><four><five/></four><six/></three></children>";
-    rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_full>(xml);
-    auto it = rapidxml::descendant_iterator<>(doc.first_node());
+    flxml::xml_document<> doc;
+    doc.parse<flxml::parse_full>(xml);
+    auto it = flxml::descendant_iterator<>(doc.first_node());
     EXPECT_EQ(it->name(), "one");
     ++it;
     EXPECT_EQ(it->name(), "two");
@@ -88,9 +88,9 @@ TEST(Predicates, AllNodes) {
 
 TEST(Predicates, AllNodesRev) {
     std::string xml = "<children><one><two/></one><three><four><five/></four><six/></three></children>";
-    rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_full>(xml);
-    auto it = rapidxml::descendant_iterator<>(doc.first_node());
+    flxml::xml_document<> doc;
+    doc.parse<flxml::parse_full>(xml);
+    auto it = flxml::descendant_iterator<>(doc.first_node());
     EXPECT_EQ(it->name(), "one");
     ++it;
     EXPECT_EQ(it->name(), "two");
@@ -116,8 +116,8 @@ TEST(Predicates, AllNodesRev) {
 
 TEST(Predicates, Attributes) {
     std::string xml = R"(<children one="1" two="2" three="3"/>)";
-    rapidxml::xml_document<> doc;
-    doc.parse<rapidxml::parse_full>(xml);
+    flxml::xml_document<> doc;
+    doc.parse<flxml::parse_full>(xml);
     auto r = doc.first_node()->attributes();
     for (auto const & child : r | std::ranges::views::filter([](auto const & n) { return n.name() == "two"; })) {
         EXPECT_EQ(child.name(), "two");

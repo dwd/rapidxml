@@ -1,13 +1,13 @@
-# RapidXML
-## Dave's Version
+# FLXML
+## Or -- RapidXML, Dave's Version
 
-Hey! This is RapidXML, an ancient C++ library for parsing XML quickly and flexibly.
+Hey! This is a fork of RapidXML, an ancient C++ library for parsing XML quickly and flexibly. To distinguish, this version is called "FLXML", for "Fast/Light XML". Hey, it's a name.
 
 There's a lot of forks of this around, and I (Dave Cridland) didn't write the vast majority of this library - instead, it was written by someone called Marcin Kalicinski, and his copyright is dated 2009.
 
 ## Version 2, Breaking Changes
 
-This is version 2.x. You might not want this.
+This is version 2.x. You might not want this, since it introduces a number of breaking changes from rapidxml. The rapidxml-like library is available, with breaking changes, by including `rapidxml.hpp` as before, within the `rapidxml` namespace - however this is an alias to the `flxml` namespace defined in `flxml.h`.
 
 It has breaking changes, the largest of which are:
 * No more case insensitive option. Really, nobody should be using XML case insensitively anyway, but it was too difficult to keep around, sorry.
@@ -28,12 +28,12 @@ Internal changes:
 
 New features:
 * Instead of the `doc->allocate_node` / `node->append_node` dance, you can now `node->append_element(name, value)`, where `name` can be either a `string` (or `string_view`, etc) or a tuple like {xmlns, local_name}, which will set an xmlns attribute if needed.
-* There's a xpathish thing going on in `rapidxml_predicates`, which lets you search for (or iterate through) elements using a trivial subset of XPath.
+* There's a xpathish thing going on in `flxml/predicates.h`, which lets you search for (or iterate through) elements using a trivial subset of XPath.
 * You can get access to containerish things in rapidxml_iterators by methods on nodes/documents, as `node.children()`, `node.attributes()` and a new `node.descendants()`.
 
 ### Fun
 
-The rapidxml_iterators library is now included in rapidxml.hpp, and you can do amusing things like:
+The rapidxml_iterators library is now included in `flxml.h`, and you can do amusing things like:
 
 ```c++
 for (auto & child : node.children()) {
@@ -46,7 +46,7 @@ More in [test/iterators.cpp](./test/iterators.cpp)
 Of course, in this case it might be simpler to:
 
 ```c++
-auto xpath = rapidxml::xpath::parse("/potato");
+auto xpath = flxml::xpath::parse("/potato");
 for (auto & child : xp->all(node)) {
     scream_for(joy);
 }
@@ -77,10 +77,10 @@ The other thing this fork added was a file of simple tests, which I've recently 
 
 The original makes reference to an expansive test suite, but this was not included in the open source release. I'll expand these tests as and when I need to.
 
-The tests use a driver which can optionally use Sentry for performance/error tracking; to enable, use the CMake option RAPIDXML_SENTRY, and clone the [sentry-native](https://github.com/getsentry/sentry-native) repository into the root, and when running `rapidxml-test`, set SENTRY_DSN in the environment. None of the submodules are needed, but it'll need libcurl, so `sudo apt install libcurl4-openssl-dev`.
+The tests use a driver which can optionally use Sentry for performance/error tracking; to enable, use the CMake option RAPIDXML_SENTRY, and clone the [sentry-native](https://github.com/getsentry/sentry-native) repository into the root, and when running `rapidxml-test`, set SENTRY_DSN in the environment.
+
+The tests are in a different Conan package, to keep things light and simple.
 
 ## Pull Requests
 
-Erm. I didn't expect any, so never set up any of the infrastructure for them - this was really a fork-of-convenience for me. Not that they're unwelcome, of course, just entirely unexpected.
-
-But yeah, go for it, just include an assurance you're happy with the licensing.
+Pull request are very welcome, but do ensure you're happy with the licensing first.

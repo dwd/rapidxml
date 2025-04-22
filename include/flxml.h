@@ -6,20 +6,17 @@
 // Revision $DateTime: 2009/05/13 01:46:17 $
 //! \file rapidxml.hpp This file contains rapidxml parser and DOM implementation
 
-#include "rapidxml_wrappers.hpp"
-#include "rapidxml_tables.hpp"
+#include <flxml/wrappers.h>
+#include <flxml/tables.h>
 
-// If standard library is disabled, user must provide implementations of required functions and typedefs
-#if !defined(RAPIDXML_NO_STDLIB)
-    #include <cstdint>      // For std::size_t
-    #include <cassert>      // For assert
-    #include <new>          // For placement new
-    #include <string>
-    #include <span>
-    #include <optional>
-    #include <memory>
-    #include <stdexcept>    // For std::runtime_error
-#endif
+#include <cstdint>      // For std::size_t
+#include <cassert>      // For assert
+#include <new>          // For placement new
+#include <string>
+#include <span>
+#include <optional>
+#include <memory>
+#include <stdexcept>    // For std::runtime_error
 
 // On MSVC, disable "conditional expression is constant" warning (level 4).
 // This warning is almost impossible to avoid with certain types of templated code
@@ -31,12 +28,12 @@
 ///////////////////////////////////////////////////////////////////////////
 // RAPIDXML_PARSE_ERROR
 
-#if defined(RAPIDXML_NO_EXCEPTIONS)
+#if defined(FLXML_NO_EXCEPTIONS)
 
-#define RAPIDXML_PARSE_ERROR(what, where) { parse_error_handler(what, where); assert(0); }
-#define RAPIDXML_EOF_ERROR(what, where) { parse_error_handler(what, where); assert(0); }
+#define FLXML_PARSE_ERROR(what, where) { parse_error_handler(what, where); assert(0); }
+#define FLML_EOF_ERROR(what, where) { parse_error_handler(what, where); assert(0); }
 
-namespace rapidxml
+namespace flxml
 {
     //! When exceptions are disabled by defining RAPIDXML_NO_EXCEPTIONS,
     //! this function is called to notify user about the error.
@@ -59,10 +56,10 @@ namespace rapidxml
 
 #else
 
-#define RAPIDXML_PARSE_ERROR(what, where) {if (*where == Ch(0)) throw eof_error(what, nullptr); else throw parse_error(what, nullptr);} (void)0
-#define RAPIDXML_EOF_ERROR(what, where) throw eof_error(what, nullptr)
+#define FLXML_PARSE_ERROR(what, where) {if (*where == Ch(0)) throw eof_error(what, nullptr); else throw parse_error(what, nullptr);} (void)0
+#define FLXML_EOF_ERROR(what, where) throw eof_error(what, nullptr)
 
-namespace rapidxml
+namespace flxml
 {
 
     //! Parse error exception.
@@ -138,21 +135,21 @@ namespace rapidxml
 ///////////////////////////////////////////////////////////////////////////
 // Pool sizes
 
-#ifndef RAPIDXML_STATIC_POOL_SIZE
+#ifndef FLXML_STATIC_POOL_SIZE
     // Size of static memory block of memory_pool.
     // Define RAPIDXML_STATIC_POOL_SIZE before including rapidxml.hpp if you want to override the default value.
     // No dynamic memory allocations are performed by memory_pool until static memory is exhausted.
-    #define RAPIDXML_STATIC_POOL_SIZE (64 * 1024)
+    #define FLXML_STATIC_POOL_SIZE (64 * 1024)
 #endif
 
-#ifndef RAPIDXML_DYNAMIC_POOL_SIZE
+#ifndef FLXML_DYNAMIC_POOL_SIZE
     // Size of dynamic memory block of memory_pool.
     // Define RAPIDXML_DYNAMIC_POOL_SIZE before including rapidxml.hpp if you want to override the default value.
     // After the static block is exhausted, dynamic blocks with approximately this size are allocated by memory_pool.
-    #define RAPIDXML_DYNAMIC_POOL_SIZE (64 * 1024)
+    #define FLXML_DYNAMIC_POOL_SIZE (64 * 1024)
 #endif
 
-namespace rapidxml
+namespace flxml
 {
     // Forward declarations
     template<typename Ch> class xml_node;
@@ -569,9 +566,9 @@ namespace rapidxml
             else
             {
                 memory = new char[size];
-#ifdef RAPIDXML_NO_EXCEPTIONS
+#ifdef FLXML_NO_EXCEPTIONS
                 if (!memory)            // If exceptions are disabled, verify memory allocation, because new will not be able to throw bad_alloc
-                    RAPIDXML_PARSE_ERROR("out of memory", 0);
+                    FLXML_PARSE_ERROR("out of memory", 0);
 #endif
             }
             return memory;
@@ -585,7 +582,7 @@ namespace rapidxml
             if (!std::align(alignof(T), sizeof(T) * n, m_ptr, m_space)) {
                 // If not enough memory left in current pool, allocate a new pool
                 // Calculate required pool size (may be bigger than RAPIDXML_DYNAMIC_POOL_SIZE)
-                std::size_t pool_size = RAPIDXML_DYNAMIC_POOL_SIZE;
+                std::size_t pool_size = FLXML_DYNAMIC_POOL_SIZE;
                 if (pool_size < size)
                     pool_size = size;
 
@@ -616,8 +613,8 @@ namespace rapidxml
 
         void *m_begin = nullptr;                                      // Start of raw memory making up current pool
         void *m_ptr = nullptr;                                        // First free byte in current pool
-        std::size_t m_space = RAPIDXML_STATIC_POOL_SIZE;                                        // Available space remaining
-        std::array<char, RAPIDXML_STATIC_POOL_SIZE> m_static_memory = {};    // Static raw memory
+        std::size_t m_space = FLXML_STATIC_POOL_SIZE;                                        // Available space remaining
+        std::array<char, FLXML_STATIC_POOL_SIZE> m_static_memory = {};    // Static raw memory
         alloc_func m_alloc_func = nullptr;                           // Allocator function, or 0 if default is to be used
         free_func m_free_func = nullptr;                             // Free function, or 0 if default is to be used
         view_type m_nullstr;
@@ -1014,16 +1011,16 @@ namespace rapidxml
             return nullptr;
         }
 
-        rapidxml::children<Ch> children() const {
-            return rapidxml::children<Ch>{*this};
+        flxml::children<Ch> children() const {
+            return flxml::children<Ch>{*this};
         }
 
-        rapidxml::descendants<Ch> descendants() const {
-            return rapidxml::descendants<Ch>{optional_ptr<xml_node<Ch>>{const_cast<xml_node<Ch> *>(this)}};
+        flxml::descendants<Ch> descendants() const {
+            return flxml::descendants<Ch>{optional_ptr<xml_node<Ch>>{const_cast<xml_node<Ch> *>(this)}};
         }
 
-        rapidxml::attributes<Ch> attributes() const {
-            return rapidxml::attributes<Ch>{*this};
+        flxml::attributes<Ch> attributes() const {
+            return flxml::attributes<Ch>{*this};
         }
 
         //! Gets first child node, optionally matching node name.
@@ -1662,9 +1659,9 @@ namespace rapidxml
                     }
                 }
                 else
-                    RAPIDXML_PARSE_ERROR("expected <", text);
+                    FLXML_PARSE_ERROR("expected <", text);
             }
-            if (!this->first_node()) RAPIDXML_PARSE_ERROR("no root element", text);
+            if (!this->first_node()) FLXML_PARSE_ERROR("no root element", text);
             return text;
         }
 
@@ -1904,7 +1901,7 @@ namespace rapidxml
                 }
                 else    // Invalid, only codes up to 0x10FFFF are allowed in Unicode
                 {
-                    RAPIDXML_PARSE_ERROR("invalid numeric character entity", text);
+                    FLXML_PARSE_ERROR("invalid numeric character entity", text);
                 }
             }
         }
@@ -2033,7 +2030,7 @@ namespace rapidxml
                             if (*src == Ch(';'))
                                 ++src;
                             else
-                                RAPIDXML_PARSE_ERROR("expected ;", src);
+                                FLXML_PARSE_ERROR("expected ;", src);
                             continue;
 
                         // Something else
@@ -2091,7 +2088,7 @@ namespace rapidxml
                 // Skip until end of declaration
                 while (text[0] != Ch('?') || text[1] != Ch('>'))
                 {
-                    if (!text[0]) RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                    if (!text[0]) FLXML_PARSE_ERROR("unexpected end of data", text);
                     ++text;
                 }
                 text += 2;    // Skip '?>'
@@ -2108,7 +2105,7 @@ namespace rapidxml
             parse_node_attributes<Flags>(text, declaration);
 
             // Skip ?>
-            if (text[0] != Ch('?') || text[1] != Ch('>')) RAPIDXML_PARSE_ERROR("expected ?>", text);
+            if (text[0] != Ch('?') || text[1] != Ch('>')) FLXML_PARSE_ERROR("expected ?>", text);
             text += 2;
 
             return declaration;
@@ -2124,7 +2121,7 @@ namespace rapidxml
                 // Skip until end of comment
                 while (text[0] != Ch('-') || text[1] != Ch('-') || text[2] != Ch('>'))
                 {
-                    if (!text[0]) RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                    if (!text[0]) FLXML_PARSE_ERROR("unexpected end of data", text);
                     ++text;
                 }
                 text += 3;     // Skip '-->'
@@ -2137,7 +2134,7 @@ namespace rapidxml
             // Skip until end of comment
             while (text[0] != Ch('-') || text[1] != Ch('-') || text[2] != Ch('>'))
             {
-                if (!text[0]) RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                if (!text[0]) FLXML_PARSE_ERROR("unexpected end of data", text);
                 ++text;
             }
 
@@ -2175,7 +2172,7 @@ namespace rapidxml
                         {
                             case Ch('['): ++depth; break;
                             case Ch(']'): --depth; break;
-                            case 0: RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                            case 0: FLXML_PARSE_ERROR("unexpected end of data", text);
                             default: break;
                         }
                         ++text;
@@ -2185,7 +2182,7 @@ namespace rapidxml
 
                 // Error on end of text
                 case Ch('\0'):
-                    RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                    FLXML_PARSE_ERROR("unexpected end of data", text);
 
                 // Other character, skip it
                 default:
@@ -2225,7 +2222,7 @@ namespace rapidxml
                 // Extract PI target name
                 Chp name = text;
                 skip<node_name_pred, Flags>(text);
-                if (text == name) RAPIDXML_PARSE_ERROR("expected PI target", text);
+                if (text == name) FLXML_PARSE_ERROR("expected PI target", text);
                 pi->name({name, text});
 
                 // Skip whitespace between pi target and pi
@@ -2238,7 +2235,7 @@ namespace rapidxml
                 while (text[0] != Ch('?') || text[1] != Ch('>'))
                 {
                     if (*text == Ch('\0'))
-                        RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                        FLXML_PARSE_ERROR("unexpected end of data", text);
                     ++text;
                 }
 
@@ -2254,7 +2251,7 @@ namespace rapidxml
                 while (text[0] != Ch('?') || text[1] != Ch('>'))
                 {
                     if (*text == Ch('\0'))
-                        RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                        FLXML_PARSE_ERROR("unexpected end of data", text);
                     ++text;
                 }
                 text += 2;    // Skip '?>'
@@ -2314,7 +2311,7 @@ namespace rapidxml
                 while (text[0] != Ch(']') || text[1] != Ch(']') || text[2] != Ch('>'))
                 {
                     if (!text[0])
-                        RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                        FLXML_PARSE_ERROR("unexpected end of data", text);
                     ++text;
                 }
                 text += 3;      // Skip ]]>
@@ -2326,7 +2323,7 @@ namespace rapidxml
             while (text[0] != Ch(']') || text[1] != Ch(']') || text[2] != Ch('>'))
             {
                 if (!text[0])
-                    RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                    FLXML_PARSE_ERROR("unexpected end of data", text);
                 ++text;
             }
 
@@ -2350,14 +2347,14 @@ namespace rapidxml
             view_type qname;
             skip<element_name_pred, Flags>(text);
             if (text == prefix)
-                RAPIDXML_PARSE_ERROR("expected element name or prefix", text);
+                FLXML_PARSE_ERROR("expected element name or prefix", text);
             if (*text == Ch(':')) {
                 element->prefix({prefix, text});
                 ++text;
                 Chp name = text;
                 skip<node_name_pred, Flags>(text);
                 if (text == name)
-                    RAPIDXML_PARSE_ERROR("expected element local name", text);
+                    FLXML_PARSE_ERROR("expected element local name", text);
                 element->name({name, text});
             } else {
                 element->name({prefix, text});
@@ -2385,13 +2382,13 @@ namespace rapidxml
             {
                 ++text;
                 if (*text != Ch('>'))
-                    RAPIDXML_PARSE_ERROR("expected >", text);
+                    FLXML_PARSE_ERROR("expected >", text);
                 ++text;
                 if (Flags & parse_open_only)
-                    RAPIDXML_PARSE_ERROR("open_only, but closed", text);
+                    FLXML_PARSE_ERROR("open_only, but closed", text);
             }
             else
-                RAPIDXML_PARSE_ERROR("expected >", text);
+                FLXML_PARSE_ERROR("expected >", text);
 
             // Return parsed element
             return element;
@@ -2476,7 +2473,7 @@ namespace rapidxml
                 while (*text != Ch('>'))
                 {
                     if (*text == 0)
-                        RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                        FLXML_PARSE_ERROR("unexpected end of data", text);
                     ++text;
                 }
                 ++text;     // Skip '>'
@@ -2522,7 +2519,7 @@ namespace rapidxml
                             Chp closing_name = text;
                             skip<node_name_pred, Flags>(text);
                             if (qname != view_type{closing_name, text})
-                                RAPIDXML_PARSE_ERROR("invalid closing tag name", text);
+                                FLXML_PARSE_ERROR("invalid closing tag name", text);
                         }
                         else
                         {
@@ -2532,10 +2529,10 @@ namespace rapidxml
                         // Skip remaining whitespace after node name
                         skip<whitespace_pred, Flags>(text);
                         if (*text != Ch('>'))
-                            RAPIDXML_PARSE_ERROR("expected >", text);
+                            FLXML_PARSE_ERROR("expected >", text);
                         ++text;     // Skip '>'
                         if (Flags & parse_open_only)
-                            RAPIDXML_PARSE_ERROR("Unclosed element actually closed.", text);
+                            FLXML_PARSE_ERROR("Unclosed element actually closed.", text);
                         return retval;     // Node closed, finished parsing contents
                     }
                     else
@@ -2552,7 +2549,7 @@ namespace rapidxml
                     if (Flags & parse_open_only) {
                         return Chp();
                     } else {
-                        RAPIDXML_PARSE_ERROR("unexpected end of data", text);
+                        FLXML_PARSE_ERROR("unexpected end of data", text);
                     }
 
                 // Data node
@@ -2576,7 +2573,7 @@ namespace rapidxml
                 ++text;     // Skip first character of attribute name
                 skip<attribute_name_pred, Flags>(text);
                 if (text == name)
-                    RAPIDXML_PARSE_ERROR("expected attribute name", name);
+                    FLXML_PARSE_ERROR("expected attribute name", name);
 
                 // Create new attribute
                 xml_attribute<Ch> *attribute = this->allocate_attribute(view_type{name, text});
@@ -2587,7 +2584,7 @@ namespace rapidxml
 
                 // Skip =
                 if (*text != Ch('='))
-                    RAPIDXML_PARSE_ERROR("expected =", text);
+                    FLXML_PARSE_ERROR("expected =", text);
                 ++text;
 
                 // Skip whitespace after =
@@ -2596,7 +2593,7 @@ namespace rapidxml
                 // Skip quote and remember if it was ' or "
                 Ch quote = *text;
                 if (quote != Ch('\'') && quote != Ch('"'))
-                    RAPIDXML_PARSE_ERROR("expected ' or \"", text);
+                    FLXML_PARSE_ERROR("expected ' or \"", text);
                 attribute->quote(quote);
                 ++text;
 
@@ -2615,7 +2612,7 @@ namespace rapidxml
 
                 // Make sure that end quote is present
                 if (*text != quote)
-                    RAPIDXML_PARSE_ERROR("expected ' or \"", text);
+                    FLXML_PARSE_ERROR("expected ' or \"", text);
                 ++text;     // Skip quote
 
                 // Skip whitespace after attribute value
@@ -2630,10 +2627,10 @@ namespace rapidxml
 }
 
 // Also include this now.
-#include <rapidxml_iterators.hpp>
+#include <flxml/iterators.h>
 
 // Undefine internal macros
-#undef RAPIDXML_PARSE_ERROR
+#undef FLXML_PARSE_ERROR
 
 // On MSVC, restore warnings state
 #ifdef _MSC_VER

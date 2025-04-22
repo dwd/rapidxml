@@ -7,17 +7,17 @@
 
 #include <string_view>
 #include <list>
-#include "rapidxml_generator.hpp"
-#include "rapidxml.hpp"
+#include <flxml/generator.h>
+#include <flxml.h>
 
-namespace rapidxml {
+namespace flxml {
     template<typename Ch> class xpath;
     namespace internal {
         template<typename Ch>
         class xpath_base;
 
         template<typename Ch=char>
-        class name : public rapidxml::internal::xpath_base<Ch> {
+        class name : public flxml::internal::xpath_base<Ch> {
         private:
             std::basic_string<Ch> m_name;
             std::optional<std::basic_string<Ch>> m_xmlns;
@@ -35,7 +35,7 @@ namespace rapidxml {
         };
 
         template<typename Ch=char>
-        class value : public rapidxml::internal::xpath_base<Ch> {
+        class value : public flxml::internal::xpath_base<Ch> {
         private:
             std::basic_string<Ch> m_value;
         public:
@@ -48,7 +48,7 @@ namespace rapidxml {
         };
 
         template<typename Ch=char>
-        class xmlns : public rapidxml::internal::xpath_base<Ch> {
+        class xmlns : public flxml::internal::xpath_base<Ch> {
         private:
             std::basic_string<Ch> m_xmlns;
         public:
@@ -61,7 +61,7 @@ namespace rapidxml {
         };
 
         template<typename Ch=char>
-        class attr : public rapidxml::internal::xpath_base<Ch> {
+        class attr : public flxml::internal::xpath_base<Ch> {
         private:
             std::basic_string<Ch> m_name;
             std::basic_string<Ch> m_value;
@@ -89,7 +89,7 @@ namespace rapidxml {
         };
 
         template<typename Ch=char>
-        class root : public rapidxml::internal::xpath_base<Ch> {
+        class root : public flxml::internal::xpath_base<Ch> {
         public:
             root() = default;
 
@@ -105,7 +105,7 @@ namespace rapidxml {
         };
 
         template<typename Ch=char>
-        class any : public rapidxml::internal::xpath_base<Ch> {
+        class any : public flxml::internal::xpath_base<Ch> {
         public:
             any() = default;
 
@@ -335,7 +335,7 @@ namespace rapidxml {
 
         explicit xpath(std::map<std::string,std::string> & xmlns) : m_xmlns(xmlns) {}
 
-        rapidxml::generator<xml_node<Ch> &> all(xml_node<Ch> & current, unsigned int depth = 0) {
+        flxml::generator<xml_node<Ch> &> all(xml_node<Ch> & current, unsigned int depth = 0) {
             if (depth >= m_chain.size()) throw std::logic_error("Depth exceeded");
             auto & xp = m_chain[depth];
             depth++;
