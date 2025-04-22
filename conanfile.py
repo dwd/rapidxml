@@ -8,6 +8,7 @@ class FLXML(ConanFile):
 
     def package(self):
         copy(self, "include/*.hpp", self.source_folder, self.package_folder)
+        copy(self, "include/*.h", self.source_folder, self.package_folder)
 
     def package_info(self):
         self.cpp_info.includedirs = ['include']

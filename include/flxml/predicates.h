@@ -7,8 +7,8 @@
 
 #include <string_view>
 #include <list>
-#include "flxml/generator.hpp"
-#include "flxml.hpp"
+#include "flxml/generator.h"
+#include "flxml.h"
 
 namespace flxml {
     template<typename Ch> class xpath;

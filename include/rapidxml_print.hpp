@@ -5,6 +5,8 @@
 #ifndef RAPIDXML_PRINT_HPP
 #define RAPIDXML_PRINT_HPP
 
+#include <flxml/print.h>
+
 namespace rapidxml = flxml;
 
 #endif //RAPIDXML_PRINT_HPP
