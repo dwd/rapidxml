@@ -3,6 +3,7 @@ name: gtest
 on:
   - push
   - pull_request
+  - release
 
 jobs:
   gtest:
