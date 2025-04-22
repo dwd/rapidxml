@@ -6,7 +6,7 @@
 #include <list>
 #include <algorithm>
 #include <ranges>
-#include "flxml.hpp"
+#include <flxml.h>
 
 TEST(Iterators, Nodes) {
     std::string xml = "<children><one/><two/><three/></children>";

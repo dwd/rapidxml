@@ -2,13 +2,13 @@
 // Created by dave on 07/07/2024.
 //
 
-#include <flxml.hpp>
-#include <flxml/utils.hpp>
+#include <flxml.h>
+#include <flxml/utils.h>
 
 #include <gtest/gtest.h>
 #include <numeric>
-#include "flxml/print.hpp"
-#include "flxml/iterators.hpp"
+#include "flxml/print.h"
+#include "flxml/iterators.h"
 
 const auto xml_sample_file = "REC-xml-20081126.xml";
 

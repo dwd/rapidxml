@@ -6,7 +6,7 @@
 // Revision $DateTime: 2009/05/13 01:46:17 $
 //! \file rapidxml_print.hpp This file contains rapidxml printer implementation
 
-#include "flxml.h"
+#include <flxml.h>
 
 // Only include streams if not disabled
 #ifndef FLXML_NO_STREAMS

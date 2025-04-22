@@ -3,7 +3,7 @@
 //
 
 #include <gtest/gtest.h>
-#include "flxml/predicates.hpp"
+#include <flxml/predicates.h>
 
 TEST(XPath, parse) {
     std::string xpath_string = "//";

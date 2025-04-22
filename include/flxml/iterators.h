@@ -6,7 +6,7 @@
 // Revision $DateTime: 2009/05/13 01:46:17 $
 //! \file rapidxml_iterators.hpp This file contains rapidxml iterators
 
-#include "flxml.h"
+#include <flxml.h>
 
 namespace flxml
 {

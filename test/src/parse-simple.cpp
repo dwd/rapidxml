@@ -3,7 +3,7 @@
 //
 
 #include <gtest/gtest.h>
-#include <flxml.hpp>
+#include <flxml.h>
 
 TEST(Parser, SingleElement) {
     char doc_text[] = "<single-element/>";

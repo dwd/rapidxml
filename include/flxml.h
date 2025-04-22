@@ -6,8 +6,8 @@
 // Revision $DateTime: 2009/05/13 01:46:17 $
 //! \file rapidxml.hpp This file contains rapidxml parser and DOM implementation
 
-#include "flxml/wrappers.h"
-#include "flxml/tables.h"
+#include <flxml/wrappers.h>
+#include <flxml/tables.h>
 
 #include <cstdint>      // For std::size_t
 #include <cassert>      // For assert

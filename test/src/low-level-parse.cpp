@@ -3,7 +3,7 @@
 //
 
 #include <gtest/gtest.h>
-#include "flxml.hpp"
+#include <flxml.h>
 
 TEST(Constants, Empty) {
     flxml::xml_document<> doc;

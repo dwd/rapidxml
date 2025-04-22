@@ -4,8 +4,8 @@
 
 #include <gtest/gtest.h>
 
-#include "flxml.hpp"
-#include "flxml/print.hpp"
+#include <flxml.h>
+#include <flxml/print.h>
 
 namespace {
     auto print(flxml::xml_document<> & doc) {
