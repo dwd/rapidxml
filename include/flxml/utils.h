@@ -37,8 +37,9 @@ namespace flxml
             
             // Determine stream size
             stream.seekg(0, ios::end);
-            size_t size = stream.tellg();
-            stream.seekg(0);   
+
+            auto size = static_cast<size_t>(stream.tellg());
+            stream.seekg(0); 
             
             // Load data and add terminating 0
             m_data.resize(size + 1);
